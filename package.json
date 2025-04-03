@@ -4,7 +4,9 @@
   "description": "Mon Repos Eastern Co-operative Credit Union (MRECCU) AGM Live Elections App",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "go": "webpack --config webpack.config.js --watch",
+    "build": "npx tailwindcss -i ./frontend/src/styles/input.css -o ./frontend/src/styles/output.css --watch"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +15,10 @@
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "pg": "^8.14.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
   }
 }

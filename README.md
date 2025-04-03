@@ -30,6 +30,10 @@ This is a locally hosted election web application for MRECCU. Members register w
 2. **Install dependencies**
      npm init -y (initialze Node js)
      npm install express pg dotenv
+     npm install --save-dev webpack webpack-cli
+     npm install -D tailwindcss@3
+     npx tailwindcss init
+     npx update-browserslist-db@latest  //update browser list
 3. **Set up database**
      
 4. Start server
