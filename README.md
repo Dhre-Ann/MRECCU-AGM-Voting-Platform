@@ -25,10 +25,13 @@ This is a locally hosted election web application for MRECCU. Members register w
   - Github for version control
 
 #Installation
-1. Clone the repository:
+1. **Clone the repository**
      https://github.com/Dhre-Ann/MRECCU-AGM-Voting-Platform
-2. Install dependencies
-3. Set up database
+2. **Install dependencies**
+     npm init -y (initialze Node js)
+     npm install express pg dotenv
+3. **Set up database**
+     
 4. Start server
 5. Open http://localhost:3000 in browser (or whatever port you use)
 
