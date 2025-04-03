@@ -8,7 +8,9 @@ This file tracks tasks, progress, and future improvements for the live election 
 - [x] Set up GitHub repository  
 - [X] Initialize Node.js project (`npm init -y`)  
 - [X] Install dependencies (`express`, `pg`, `dotenv`, etc.)  
-- [ ] Set up project folder structure  
+- [X] Set up project folder structure  
+- [X] Set up webpack for js bundling 
+- [X] Set up tailwind
 
 ---
 
