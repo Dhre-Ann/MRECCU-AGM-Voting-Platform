@@ -1,12 +1,21 @@
 # MRECCU-AGM-Voting-Platform
 Mon Repos Eastern Co-operative Credit Union (MRECCU) AGM Live Elections App
 
-This is a locally hosted election web application for MRECCU. Members register with their phone numbers, log in to nominate and vote in real-time, and all voting happens via personal cell phones while connected to the local network.
+This is a web application for MRECCU. 
+  * Members register with their phone numbers and account number
+    - Username: phone number
+    - Password: Account number
+  * Members nominate live and admin will populate nominees
+  * Members enter an number specified by admin to authenticate before voting
+  * Members vote in real-time 
+
+  * All voting happens via personal cell phones while connected to an network.
+  * People without devices will vote on paper and tallies will be added after.
 
 # Core Features
-  - Phone number-based authentication
+  - Phone number + account numebr based authentication
   - Live nominations and voting
-  - Real time updates controlled by staff
+  - Real time updates and futher authentication controlled by staff
   - Mobile friendly UI with QR code access
 
 # Tech Stack
@@ -21,7 +30,7 @@ This is a locally hosted election web application for MRECCU. Members register w
   - Webpack
   
   ### Hosting
-  - Local Hosting (staff laptop as server)
+  - AWS server (TBD)
   - Github for version control
 
 #Installation
@@ -40,8 +49,25 @@ This is a locally hosted election web application for MRECCU. Members register w
 5. Open http://localhost:3000 in browser (or whatever port you use)
 
 ## Project Structure
-
+  - backend
+  - frontend
+    - assets (images)
+    - dist (js bundle)
+    - pages (html files)
+    - src
+      - js files
+      - css files
+    - index.html
+  - node modules (npm dependencies)
+  - gitignore file
+  - package.json file
+  - package.json lock file
+  - Readme.md
+  - Todo.md
+  - tailwind.config.js (tailwind configuration)
+  - webpack.config.js (webpack configuration for bundling js files)
 
 ## Future Improvements
 - Admin dashboard for viewing results
-- Graphical representation of results
+  - Append manually collected votes (input section to add votes from paper)
+- Graphical representation of results (showing stats from devices, and devices and paper combined)
