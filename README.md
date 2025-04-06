@@ -2,6 +2,7 @@
 Mon Repos Eastern Co-operative Credit Union (MRECCU) AGM Live Elections App
 
 - THIS IS A TEMPORARY CHANGE
+- This is a temporary change after the change line 2
 
 This is a web application for MRECCU. 
   * Members register with their phone numbers and account number
