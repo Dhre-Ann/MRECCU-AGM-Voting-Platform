@@ -48,7 +48,7 @@ This is a web application for MRECCU.
 4. Start server
 5. Open http://localhost:3000 in browser (or whatever port you use)
 
-## Project Structure
+# Project Structure
   - backend
   - frontend
     - assets (images)
@@ -67,7 +67,7 @@ This is a web application for MRECCU.
   - tailwind.config.js (tailwind configuration)
   - webpack.config.js (webpack configuration for bundling js files)
 
-## Future Improvements
+# Future Improvements
 - Admin dashboard for viewing results
   - Append manually collected votes (input section to add votes from paper)
 - Graphical representation of results (showing stats from devices, and devices and paper combined)
