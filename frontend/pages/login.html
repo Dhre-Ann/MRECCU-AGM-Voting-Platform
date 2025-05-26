@@ -7,6 +7,23 @@
     <link href="/frontend/src/styles/output.css" rel="stylesheet">
 </head>
 <body>
+
+    <!-- Voter login form -->
+    <form id="voterForm">
+        <label>
+          Phone Number: 
+          <input type="text" id="phoneNumber" required />
+        </label>
+        <br />
+        <label>
+          Account Number: 
+          <input type="text" id="accountNumber" required />
+        </label>
+        <br />
+        <button type="submit">Submit</button>
+      </form>
+
+      <div id="result"></div>
     
 </body>
 <script src="/frontend/dist/bundle.js"></script>
