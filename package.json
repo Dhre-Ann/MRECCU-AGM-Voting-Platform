@@ -8,7 +8,7 @@
     "watch:webpack": "webpack --config webpack.config.js --watch",
     "watch:tailwind": "npx tailwindcss -i ./frontend/src/styles/input.css -o ./frontend/src/styles/output.css --watch",
     "watch": "npm-run-all --parallel watch:*",
-    "build:webpack": "webpack --config webpack.config.js",
+    "build:webpack": "webpack-cli --config webpack.config.js",
     "build:tailwind": "npx tailwindcss -i ./frontend/src/styles/input.css -o ./frontend/src/styles/output.css",
     "build": "npm run build:webpack && npm run build:tailwind",
     "start": "node server.js"
