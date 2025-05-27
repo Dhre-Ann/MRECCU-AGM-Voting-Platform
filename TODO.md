@@ -7,7 +7,7 @@ This file tracks tasks, progress, and future improvements for the live election 
 ## 🏗️ **Project Setup**
 - [x] Set up GitHub repository  
 - [X] Initialize Node.js project (`npm init -y`)  
-- [X] Install dependencies (`express`, `pg`, `dotenv`, `cors`, etc.)  
+- [X] Install dependencies (`express`, `pg`, `dotenv`, `cors`, `npm-run-all --save-dev` etc.)  
 - [X] Set up project folder structure  
 - [X] Set up webpack for js bundling 
 - [X] Set up tailwind
