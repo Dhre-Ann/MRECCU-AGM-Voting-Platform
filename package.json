@@ -9,7 +9,7 @@
     "watch:tailwind": "npx tailwindcss -i ./frontend/src/styles/input.css -o ./frontend/src/styles/output.css --watch",
     "watch": "npm-run-all --parallel watch:*",
     "build:webpack": "npx webpack-cli --config webpack.config.js",
-    "build:tailwind": "node_modules/.bin/tailwindcss -i ./frontend/src/styles/input.css -o ./frontend/src/styles/output.css",
+    "build:tailwind": "npx --no-install tailwindcss -i ./frontend/src/styles/input.css -o ./frontend/src/styles/output.css || ./node_modules/.bin/tailwindcss -i ./frontend/src/styles/input.css -o ./frontend/src/styles/output.css",
     "build": "npm run build:webpack && npm run build:tailwind",
     "start": "node server.js"
   },
@@ -22,7 +22,8 @@
     "express": "^5.1.0",
     "pg": "^8.14.1",
     "webpack": "^5.99.9",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "tailwindcss": "^4.1.7"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5",
