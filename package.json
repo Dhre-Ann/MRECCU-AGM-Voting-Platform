@@ -10,7 +10,7 @@
     "watch": "npm-run-all --parallel watch:*",
     "build:webpack": "webpack --config webpack.config.js",
     "build:tailwind": "npx tailwindcss -i ./frontend/src/styles/input.css -o ./frontend/src/styles/output.css",
-    "build": "npm-run-all build:*",
+    "build": "npm-run-all build:tailwind build:webpack",
     "start": "node server.js"
   },
   "keywords": [],
