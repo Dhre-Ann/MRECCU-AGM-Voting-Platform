@@ -1,5 +1,6 @@
 
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,6 +12,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false } // Needed for some hosted DBs like Render, Heroku
 });
 
+app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.json());  // Middleware to parse JSON
 app.use(cors());          // Enable CORS for all origins
 
