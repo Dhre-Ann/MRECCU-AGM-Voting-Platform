@@ -3,11 +3,16 @@
 @theme {
   --color-primary: #343075;  
   --color-secondary: #eae9ef;
+
   --color-accent1: #8a87af;
   --color-accent2: #5f5c92;
   --color-accent3: #b6b5ce;
+  --color-accent4: #28ace3;
+
   --color-highlight: #fbdf13;
+
   --color-light1: #e0dbb8;
   --color-light2: #d9ce80;
-  --color-light3: #e7d536;      
-  }
+  --color-light3: #e7d536;
+  --color-light4: #9dd5f0;
+}

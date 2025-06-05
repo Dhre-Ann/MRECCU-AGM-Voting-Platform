@@ -1,3 +1,16 @@
+// login button
+var loginRedirect = document.getElementById("login-redirect-btn");
+if (loginRedirect) {
+  loginRedirect.addEventListener("click", () => {
+    window.location.href = "./pages/login.html";
+  });
+}
+
+// verify user
+
+
+
+// add voter
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('voterForm');
     const resultDiv = document.getElementById('result');
@@ -28,4 +41,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
   });
-  

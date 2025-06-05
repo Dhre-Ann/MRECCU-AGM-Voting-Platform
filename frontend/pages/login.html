@@ -8,24 +8,43 @@
 </head>
 <body>
 
-    <div class="w-full mx-auto bg-blue-300 text-white p-4">
-        Custom primary background should show!
-      </div>
+    
 
     <!-- Voter login form -->
-    <form id="voterForm">
-        <label>
-          Phone Number: 
-          <input type="text" id="phoneNumber" required />
-        </label>
-        <br />
-        <label>
-          Account Number: 
-          <input type="text" id="accountNumber" required />
-        </label>
-        <br />
-        <button type="submit">Submit</button>
-      </form>
+<section class="min-h-screen flex items-center justify-center bg-light4 px-4">
+  <form id="voterForm" class="w-full max-w-sm bg-white p-6 rounded-xl shadow-md space-y-4 text-primary">
+    <h2 class="text-2xl font-semibold text-center text-accent4 mb-2">Voter Login</h2>
+    <p class="text-sm text-center text-accent2 italic">Secure access to the voting platform</p>
+
+    <label class="block">
+      <span class="text-sm font-medium">Phone Number:</span>
+      <input
+        type="text"
+        id="phoneNumber"
+        required
+        class="mt-1 block w-full px-4 py-2 border border-accent4 rounded-md focus:outline-none focus:ring-2 focus:ring-accent4"
+      />
+    </label>
+
+    <label class="block">
+      <span class="text-sm font-medium">Account Number:</span>
+      <input
+        type="text"
+        id="accountNumber"
+        required
+        class="mt-1 block w-full px-4 py-2 border border-accent4 rounded-md focus:outline-none focus:ring-2 focus:ring-accent4"
+      />
+    </label>
+
+    <button
+      type="submit"
+      class="w-full bg-accent4 hover:bg-light3 hover:border-2 hover:shadow-accent2 hover:shadow-md text-white font-semibold py-2 px-4 rounded-md transition"
+    >
+      Submit
+    </button>
+  </form>
+</section>
+
 
       <div id="result"></div>
     
