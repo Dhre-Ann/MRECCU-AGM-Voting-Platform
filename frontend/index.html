@@ -1,22 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link href="./src/styles/output.css" rel="stylesheet">
-</head>
-<body class="w-full full">
-    <main class="w-full h-full max-h-screen p-2 items-center justify-center flex-col gap-4 my-auto">
-        <div class="mx-auto my-auto p-4 shadow-md w-fit">
-            <h1 class="text-center">Welcome to MRECCU Annual General Meeting</h1>
-        </div>
-        <div class="mx-auto my-auto p-4 shadow-md w-fit bg-[rgb(156,178,205)]">
-            <p class="text-center black">Here you will vote for your new executive for the upcoming year!</p>
-        </div>
 
-        
-    </main>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link href="/frontend/dist/output.css" rel="stylesheet">
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+  <!--<script>
+      tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#343075',
+            secondary: "#eae9ef",
+            accent1: '#8a87af',
+            accent2: '#5f5c92',
+            accent3: '#b6b5ce',
+            highlight: '#fbdf13',
+            light1: '#e0dbb8',
+            light2: '#d9ce80',
+            light3: '#e7d536',
+          },
+        },
+      },
+    }
+    </script> -->
+</head>
+
+<body class="w-full bg-primary text-secondary font-sans">
+
+  <!-- Header -->
+  <header class="w-full bg-primary text-secondary py-6 shadow-lg">
+    
+    <div class="w-fit h-fit text-sm px-4 py-2 mx-auto bg-accent3 rounded-2xl flex items-center justify-center">
+      <img src="/frontend/assets/mrccu-logo.png" alt="mreccu-logo"
+     class="w-24 sm:w-32 md:w-40 lg:w-48 xl:w-52 h-auto" />
+
+    </div>
+
+    <div class="container mx-auto text-center">
+      <h2 class="text-md sm:text-3xl font-bold mt-2 italic">Mon Repos Eastern Co-operative Credit Union</h2>
+    </div>
+
+  </header>
+
+  <!-- Welcome Section -->
+<section class="relative py-16 px-4 text-center text-primary bg-accent3">
+  <img src="./assets/vote.png" alt="vote-image"
+       class="absolute inset-0 w-full h-full object-cover opacity-40 pointer-events-none" />
+
+  <div class="relative z-10 max-w-md mx-auto">
+    <h2 class="shadow-md shadow-light1 w-fit p-3 rounded-sm text-xl sm:text-3xl font-semibold mb-4 bg-secondary/80">
+      Annual General Meeting Voting Platform
+    </h2>
+    <!-- <p class="text-lg bg-secondary/70 px-2 py-1 rounded">
+      Cast your vote and participate in shaping the future of our credit union.
+    </p> -->
+  </div>
+</section>
+
+
+
+
+
+  <!-- Banner -->
+  <section class="bg-accent1 text-white py-6">
+      <div class="mx-auto text-center">
+        <p class="text-lg text-highlight font-semibold italic">Our People, Our Community, Our Credit Union</p>
+      </div>
+  </section>
+
+
+  <!-- Main Content -->
+  <main class="py-12 bg-white text-primary min-h-[35vh] sm:min-h-[35vh] lg:min-h-[32vh]">
+  <div class="container mx-auto text-center">
+    <h3 class="text-lg sm:text-xl font-medium">
+      Voting will begin soon. Please stay tuned for further instructions.
+    </h3>
+    <!-- You can add buttons, login prompts, or timers here -->
+     <div class="p-6">
+      <button class="bg-accent1 text-white px-4 py-2 rounded hover:bg-light3 transition-colors">
+        Vote Now!
+      </button>
+     </div>
+     
+
+  </div>
+</main>
+
+
+  <!-- Footer -->
+<footer class="mt-auto bg-primary text-white py-8 px-2 text-sm text-center">
+  <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
+</footer>
+
 </body>
-<script src="../frontend/dist/bundle.js"></script>
+<script src="./dist/bundle.js"></script>
+
 </html>
