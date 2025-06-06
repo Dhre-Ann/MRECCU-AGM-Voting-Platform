@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote MRECCU</title>
+    <link href="../dist/output.css" rel="stylesheet">
+</head>
+
+<body class="w-full bg-primary text-secondary font-sans">
+
+    <!-- Header -->
+    <header class="w-full bg-primary text-secondary py-6 shadow-lg">
+
+        <div class="w-fit h-fit text-sm px-4 py-2 mx-auto bg-accent3 rounded-2xl flex items-center justify-center">
+            <img src="../assets/mrccu-logo.png" alt="mreccu-logo" class="w-24 sm:w-32 md:w-40 lg:w-48 xl:w-52 h-auto" />
+
+        </div>
+
+        <div class="container mx-auto text-center">
+            <p class="text-lg pt-2 text-highlight font-semibold italic">Our People, Our Community, Our Credit Union</p>
+        </div>
+
+    </header>
+
+
+    <!-- Main Content -->
+    <main class="py-12 bg-white text-primary min-h-[35vh] sm:min-h-[35vh] lg:min-h-[32vh]">
+        <div class="container mx-auto text-center">
+            <h3 class="text-lg sm:text-xl font-medium">
+                Voting will begin soon. Please stay tuned for further instructions.
+            </h3>
+            <!-- Dynamic Voting Section -->
+
+        </div>
+
+
+        <section id="treasurer-section" class="my-8 px-4 mx-auto text-center">
+            <h2 class="text-xl sm:text-2xl font-bold text-accent4 mb-2">Treasurer</h2>
+            <p class="text-sm text-accent2 italic mb-4">Select <strong>3</strong> out of the 5 candidates below</p>
+
+            <form id="treasurer-vote-form" class="">
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <!-- Candidate 1 -->
+                    <label
+                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
+                        <input type="checkbox" name="treasurer" value="candidate1" class="mt-1 accent-accent4" />
+                        <div class="text-left pl-2">
+                            <p class="font-semibold text-primary">John Paul</p>
+                            <p class="text-sm text-accent2 italic">Finance committee member</p>
+                        </div>
+                    </label>
+
+                    <!-- Candidate 2 -->
+                    <label
+                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
+                        <input type="checkbox" name="treasurer" value="candidate2" class="mt-1 accent-accent4" />
+                        <div class="text-left pl-2">
+                            <p class="font-semibold text-primary">Marsha Griffith</p>
+                            <p class="text-sm text-accent2 italic">Treasury intern, UWI graduate</p>
+                        </div>
+                    </label>
+
+                    <!-- Candidate 3 -->
+                    <label
+                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
+                        <input type="checkbox" name="treasurer" value="candidate3" class="mt-1 accent-accent4" />
+                        <div class="text-left pl-2">
+                            <p class="font-semibold text-primary">Elliot Charles</p>
+                            <p class="text-sm text-accent2 italic">Experienced accountant</p>
+                        </div>
+                    </label>
+
+                    <!-- Candidate 4 -->
+                    <label
+                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
+                        <input type="checkbox" name="treasurer" value="candidate4" class="mt-1 accent-accent4" />
+                        <div class="text-left pl-2">
+                            <p class="font-semibold text-primary">Sasha Niles</p>
+                            <p class="text-sm text-accent2 italic">Community volunteer with financial experience</p>
+                        </div>
+                    </label>
+
+                    <!-- Candidate 5 -->
+                    <label
+                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
+                        <input type="checkbox" name="treasurer" value="candidate5" class="mt-1 accent-accent4" />
+                        <div class="text-left pl-2">
+                            <p class="font-semibold text-primary">Gerald Thompson</p>
+                            <p class="text-sm text-accent2 italic">Former assistant treasurer</p>
+                        </div>
+                    </label>
+                </div>
+
+
+                <p class="mt-4 text-xs text-accent2 italic">You can only select up to 3 candidates for this position.
+                </p>
+                <div class="mt-6 text-center">
+                    <button id="submitVoteBtn"
+                        class="bg-accent4 hover:bg-light3 hover:border-2 hover:shadow-accent2 hover:shadow-md text-white font-semibold py-2 px-6 rounded-md transition">
+                        Vote!
+                    </button>
+                </div>
+        </section>
+
+        </form>
+
+
+
+
+
+
+
+
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer class="mt-auto bg-primary text-white py-8 px-2 text-sm text-center">
+        <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
+    </footer>
+
+</body>
+<script src="../dist/bundle.js"></script>
+
+</html>
