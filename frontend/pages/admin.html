@@ -1,13 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MRECCU Voting Manager</title>
-    <link href="/frontend/src/styles/output.css" rel="stylesheet">
+    <link href="../dist/output.css" rel="stylesheet">
 </head>
-<body>
-    
+
+<body class="w-full bg-light4 text-primary font-sans">
+
+    <!-- Header -->
+    <header class="w-full bg-primary text-secondary py-6 shadow-lg">
+        <div class="w-fit h-fit text-sm px-4 py-2 mx-auto bg-accent3 rounded-2xl flex items-center justify-center">
+            <img src="../assets/mrccu-logo.png" alt="mreccu-logo" class="w-24 sm:w-32 md:w-40 lg:w-48 xl:w-52 h-auto" />
+        </div>
+        <div class="container mx-auto text-center">
+            <p class="text-lg pt-2 text-highlight font-semibold italic">Our People, Our Community, Our Credit Union</p>
+        </div>
+    </header>
+
+
+    <!-- Main Content - Admin Dashboard Layout -->
+    <div class="flex flex-col lg:flex-row gap-8 p-6">
+        <!-- Active Voting Setup -->
+        <section class="lg:w-2/3 bg-white p-6 rounded-xl shadow space-y-4">
+            <h2 class="text-xl text-center font-bold text-primary">Active Voting Configuration</h2>
+
+            <!-- Select Position -->
+            <div class="space-y-2">
+                <label class="block text-sm font-medium">Select Position</label>
+                <select title="select_position"
+                    class="w-full px-4 py-2 border border-accent4 rounded-md focus:outline-none focus:ring-2 focus:ring-accent4">
+                    <option disabled selected>Select</option>
+                    <option>President</option>
+                    <option>Vice President</option>
+                    <option>Public Relations Officer</option>
+                    <option>Treasurer</option>
+                    <option>Secretary</option>
+                </select>
+            </div>
+
+            <!-- Number of Votes Allowed -->
+            <div class="space-y-2">
+                <label class="block text-sm font-medium">Number of Votes Allowed</label>
+                <input type="number" placeholder="e.g., 3"
+                    class="w-full px-4 py-2 border border-accent4 rounded-md focus:outline-none focus:ring-2 focus:ring-accent4" />
+            </div>
+
+            <!-- Candidate List -->
+            <div class="space-y-2">
+                <label class="block text-sm font-medium">Candidates</label>
+                <div class="space-y-2">
+                    <div class="items-center gap-2">
+                        <input type="text" placeholder="Candidate Name"
+                            class="flex-1 px-4 py-2 mb-1 border border-accent4 rounded-md" />
+                        <input type="text" placeholder="Candidate Occupation"
+                            class="flex-1 px-4 py-2 mb-1 border border-accent4 rounded-md" />
+                        <button class="bg-accent4 text-white px-3 py-1 rounded hover:bg-light3">Add</button>
+                    </div>
+
+                    <!-- Existing Candidates List -->
+                    <ul class="text-sm space-y-1">
+                        <li class="flex justify-between items-center bg-accent3/10 p-2 rounded">
+                            <span>Jane Doe</span>
+                            <button class="text-red-600 hover:text-red-800">Remove</button>
+                        </li>
+                        <li class="flex justify-between items-center bg-accent3/10 p-2 rounded">
+                            <span>John Smith</span>
+                            <button class="text-red-600 hover:text-red-800">Remove</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Voting History / Control Center -->
+        <aside class="lg:w-1/3 bg-white p-4 rounded-xl shadow space-y-4">
+            <h3 class="text-lg text-center font-bold text-primary">Control Center</h3>
+            <div class="bg-white p-3 rounded-md shadow">
+                <button id="toggleUploadCSV" type="button"
+                    class="w-full text-left text-primary font-semibold py-2 px-3 hover:bg-accent3/20 rounded transition">
+                    Upload Voter Data
+                </button>
+
+                <div id="uploadCSVSection" class="hidden space-y-3 mt-2">
+                    <input type="file" accept=".csv" class="w-full border border-accent4 p-2 rounded-md" required />
+                    <button type="submit"
+                        class="bg-accent4 text-white font-semibold py-2 px-4 rounded-md hover:bg-light3 transition">
+                        Upload CSV
+                    </button>
+                </div>
+            </div>
+
+
+            <div class="bg-white p-3 rounded-md shadow">
+                <button id="toggleVotingSectionBtn" type="button"
+                    class="w-full text-left text-primary font-semibold py-2 px-3 hover:bg-accent3/20 rounded transition">
+                    Toggle Voting
+                </button>
+                <div id="toggleVotingSection" class="hidden space-y-3 mt-4">
+                    <p id="votingStatusText" class="text-primary/70 hidden">Voting in progress. View voting activity
+                        below.</p>
+                    <button id="toggleVotingBtn" type="button"
+                        class="text-center bg-accent4 text-white font-semibold py-2 px-4 rounded-md hover:bg-light3 transition">
+                        Start Voting
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Part 2 -->
+
+
+
+    <div class="flex flex-col lg:flex-row gap-8 p-6">
+        <!-- Active Voting Setup -->
+        <section class="lg:w-2/3 bg-white p-6 rounded-xl shadow space-y-4">
+            <!-- Live features + progress bars using FLowbite -->
+            <!-- number of votes cast -->
+            <!-- number of votes remaining -->
+            <!-- votes per candidate -->
+            <!-- Countdown -->
+
+
+            <h2 class="text-xl text-center font-bold text-primary">Voting Activity</h2>
+
+            <!-- Paragraph shown when voting is inactive -->
+            <p id="votingInactiveMsg" class="text-center text-accent2 italic">Voting is not active at the moment. Once
+                voting begins, live results will appear here.</p>
+
+            <!-- Live Voting Stats (Initially Hidden) -->
+            <div id="votingStats" class="hidden space-y-4">
+                <div>
+                    <label class="font-medium">Votes Cast:</label>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div id="votesProgress" class="w-0/10 bg-accent4 h-4 rounded-full"></div>
+                    </div>
+                    <p class="text-sm text-primary/70"><span id="votesCount">0</span> votes cast out of <span
+                            id="votesTotal">0</span> allowed</p>
+                </div>
+
+                <div id="candidateVotes" class="space-y-2 text-sm">
+                    <!-- Example dynamic entry:
+      <div>
+        <span>Jane Doe:</span>
+        <progress value="23" max="100"></progress> 23 votes
+      </div>
+      -->
+                </div>
+            </div>
+        </section>
+
+
+        <aside class="lg:w-1/3 bg-white p-4 rounded-xl shadow space-y-4">
+            <h3 class="text-lg text-center font-bold text-primary">Voting History</h3>
+            <ul class="space-y-3 text-sm">
+                <li class="bg-white p-3 rounded-md shadow">
+                    <strong>Treasurer</strong><br />
+                    Votes Cast: 123<br />
+                    Status: Closed
+                </li>
+                <li class="bg-white p-3 rounded-md shadow">
+                    <strong>Secretary</strong><br />
+                    Votes Cast: 98<br />
+                    Status: Closed
+                </li>
+            </ul>
+
+
+        </aside>
+
+
+    </div>
+
+
+
+
+
+    <!-- CSV Upload Section -->
+    <!-- <section class="bg-white mt-10 p-6 rounded-xl shadow space-y-4">
+        <h2 class="text-xl font-bold text-primary">Upload Voter Data</h2>
+        <form id="uploadCSVForm" class="space-y-3">
+            <input type="file" accept=".csv" class="w-full border border-accent4 p-2 rounded-md" required />
+            <button type="submit"
+                class="bg-accent4 text-white font-semibold py-2 px-4 rounded-md hover:bg-light3 transition">
+                Upload CSV
+            </button>
+        </form>
+    </section> -->
+
+
+    <!-- ------------------------------------------------------------------------------------------------------------------- -->
+
+
+
+
+
+    <section class="min-h-screen bg-light4 px-4 py-8 text-primary">
+        <div class="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-md space-y-8">
+
+            <!-- Title -->
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-accent4">Admin Dashboard</h2>
+                <p class="text-sm italic text-accent2">Manage voting configurations and participants</p>
+            </div>
+
+            <!-- Add Position -->
+            <form id="positionForm" class="space-y-4">
+                <h3 class="text-xl font-semibold text-accent4">Add New Position</h3>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Position Name:</label>
+                    <input type="text" id="positionName" required
+                        class="w-full px-4 py-2 border border-accent3 rounded-md" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Number of Votes Allowed:</label>
+                    <input type="number" id="votesAllowed" required
+                        class="w-full px-4 py-2 border border-accent3 rounded-md" />
+                </div>
+
+                <!-- Candidates -->
+                <div id="candidateFields" class="space-y-2">
+                    <label class="block text-sm font-medium">Candidate Names:</label>
+                    <div class="flex gap-2">
+                        <input type="text" name="candidate[]"
+                            class="flex-1 px-4 py-2 border border-accent3 rounded-md" />
+                        <button type="button" onclick="addCandidateField()"
+                            class="bg-accent4 text-white px-3 rounded-md">+</button>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium">Active:</label>
+                    <input type="checkbox" id="positionStatus" class="h-5 w-5 accent-accent4" />
+                </div>
+
+                <button type="submit" class="bg-accent4 text-white px-4 py-2 rounded-md hover:bg-light3">Add
+                    Position</button>
+            </form>
+
+            <!-- Voting Toggle -->
+            <div class="flex items-center justify-between border-t pt-6">
+                <label class="font-medium">Activate Voting:</label>
+                <input type="checkbox" id="votingToggle" class="h-6 w-6 accent-accent4" />
+            </div>
+
+            <!-- CSV Upload -->
+            <form id="uploadForm" class="space-y-3 border-t pt-6">
+                <h3 class="text-xl font-semibold text-accent4">Upload Voter List (.csv)</h3>
+                <input type="file" id="csvUpload" accept=".csv"
+                    class="block w-full border border-accent3 rounded-md p-2" />
+                <button type="submit" class="bg-accent4 text-white px-4 py-2 rounded-md hover:bg-light3">Upload
+                    CSV</button>
+            </form>
+
+        </div>
+    </section>
+
+
+    <!-- Footer -->
+    <footer class="mt-auto bg-primary text-white py-8 px-2 text-sm text-center">
+        <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
+    </footer>
+
 </body>
-<script src="/frontend/dist/bundle.js"></script>
+<script src="../dist/bundle.js">
+    function addCandidateField() {
+        const container = document.getElementById('candidateFields');
+        const inputGroup = document.createElement('div');
+        inputGroup.className = 'flex gap-2';
+        inputGroup.innerHTML = `
+      <input type="text" name="candidate[]" class="flex-1 px-4 py-2 border border-accent3 rounded-md" />
+      <button type="button" onclick="this.parentElement.remove()" class="bg-red-500 text-white px-3 rounded-md">–</button>
+    `;
+        container.appendChild(inputGroup);
+    }
+</script>
+
 </html>

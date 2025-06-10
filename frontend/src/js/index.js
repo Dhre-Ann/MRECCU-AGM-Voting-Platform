@@ -72,6 +72,63 @@ if (voterLoginForm){
 
 
 
+
+
+
+
+
+
+
+
+
+// ====================================== ADMIN DASH ======================================
+
+const toggleUploadBtn = document.getElementById('toggleUploadCSV');
+const uploadCSVSection = document.getElementById('uploadCSVSection');
+
+if (toggleUploadBtn) {
+  toggleUploadBtn.addEventListener('click', () => {
+    uploadCSVSection.classList.toggle('hidden');
+  });
+}
+const toggleVoting = document.getElementById('toggleVotingSectionBtn');
+const toggleVotingSection = document.getElementById('toggleVotingSection');
+
+if (toggleVoting) {
+  toggleVoting.addEventListener('click', () => {
+    toggleVotingSection.classList.toggle('hidden');
+  });
+}
+
+// Toggle voting start and stop ------ Replace with DB logic later
+const toggleVotingBtn = document.getElementById('toggleVotingBtn');
+const votingInactiveMsg = document.getElementById('votingInactiveMsg');
+const votingStats = document.getElementById('votingStats');
+
+let votingActive = false; // Track state locally (can replace with server-side value)
+
+toggleVotingBtn.addEventListener('click', () => {
+  votingActive = !votingActive;
+
+  if (votingActive) {
+    toggleVotingBtn.textContent = 'Stop Voting';
+    votingInactiveMsg.classList.add('hidden');
+    votingStats.classList.remove('hidden');
+  } else {
+    toggleVotingBtn.textContent = 'Start Voting';
+    votingStats.classList.add('hidden');
+    votingInactiveMsg.classList.remove('hidden');
+  }
+});
+
+
+
+
+
+
+
+
+
 // add voter - STANDALONE TEST - WILL BE NEEDED LATER FOR ADMIN
 // document.addEventListener('DOMContentLoaded', () => {
 //     const form = document.getElementById('voterForm');
