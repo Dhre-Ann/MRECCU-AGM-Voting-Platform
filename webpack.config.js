@@ -1,12 +1,11 @@
 const path = require('path');
 const webpack = require('webpack');
-const dotenv = require('dotenv');
 
 module.exports = () => {
-  // Load env variables
-  const env = dotenv.config().parsed || {};
+  const env = {
+    API_BASE_URL: process.env.API_BASE_URL
+  };
 
-  // Convert for DefinePlugin
   const envKeys = Object.keys(env).reduce((acc, key) => {
     acc[`process.env.${key}`] = JSON.stringify(env[key]);
     return acc;
@@ -18,7 +17,7 @@ module.exports = () => {
       filename: 'bundle.js',
       path: path.resolve(__dirname, 'frontend/dist'),
     },
-    mode: 'development', // or 'production'
+    mode: 'production',
     plugins: [
       new webpack.DefinePlugin(envKeys)
     ],
