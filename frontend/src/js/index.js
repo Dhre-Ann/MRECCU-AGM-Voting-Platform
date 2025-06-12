@@ -1,4 +1,6 @@
 const API_BASE_URL = process.env.API_BASE_URL;
+console.log('API Base URL is:', API_BASE_URL);
+
 
 // Variables
 const loginRedirect = document.getElementById("login-redirect-btn");
