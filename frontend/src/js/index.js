@@ -1,3 +1,5 @@
+const API_BASE_URL = process.env.API_BASE_URL;
+
 // Variables
 const loginRedirect = document.getElementById("login-redirect-btn");
 const phoneInput = document.getElementById('phoneNumber');
@@ -51,7 +53,7 @@ if (voterLoginForm){
     }
 
     try {
-      const response = await fetch('http://localhost:3000/verify-voter', {
+      const response = await fetch(`${API_BASE_URL}/verify-voter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone_number, account_number }),
@@ -125,7 +127,7 @@ if (toggleVotingBtn){
   try {
     if (toggleVotingBtn.textContent === 'Start Voting') {
       // Attempt to start voting
-      const response = await fetch('http://localhost:3000/voting/start', {
+      const response = await fetch(`${API_BASE_URL}/voting/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ position_name: selectedPosition })
@@ -144,7 +146,7 @@ if (toggleVotingBtn){
 
     } else {
       // Stop voting
-      const response = await fetch('http://localhost:3000/voting/stop', {
+      const response = await fetch(`${API_BASE_URL}/voting/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ position_name: selectedPosition })
@@ -187,7 +189,7 @@ if (addCandidateBtn){
   }
 
   try {
-    const response = await fetch('http://localhost:3000/add-candidate', {
+    const response = await fetch(`${API_BASE_URL}/add-candidate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ positionName, candidateName, candidateOccupation })
@@ -211,7 +213,7 @@ if (addCandidateBtn){
 
 // Function to fetch and display candidates for selected position
 async function loadCandidates(positionName) {
-  const response = await fetch(`http://localhost:3000/get-candidates?position=${encodeURIComponent(positionName)}`);
+  const response = await fetch(`${API_BASE_URL}/get-candidates?position=${encodeURIComponent(positionName)}`);
   const data = await response.json();
 
   candidateList.innerHTML = ''; // Clear the list first
@@ -242,7 +244,7 @@ async function removeCandidate(candidateId, positionName) {
   if (!confirmed) return;
 
   try {
-    const response = await fetch(`http://localhost:3000/remove-candidate/${candidateId}`, {
+    const response = await fetch(`${API_BASE_URL}/remove-candidate/${candidateId}`, {
       method: 'DELETE'
     });
     if (response.ok) {
@@ -285,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch the position from the backend
     try {
-      const response = await fetch(`http://localhost:3000/get-position-name?name=${encodeURIComponent(positionName)}`);
+      const response = await fetch(`${API_BASE_URL}/get-position-name?name=${encodeURIComponent(positionName)}`);
       const data = await response.json();
 
       if (data.success) {
@@ -340,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Send to server to save
         try {
-          const response = await fetch(`http://localhost:3000/update-votes`, {
+          const response = await fetch(`${API_BASE_URL}/update-votes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -388,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //         const account_number = document.getElementById('accountNumber').value;
     
 //         try {
-//           const response = await fetch('http://localhost:3000/add-voter', {
+//           const response = await fetch('${API_BASE_URL}/add-voter', {
 //             method: 'POST',
 //             headers: { 'Content-Type': 'application/json' },
 //             body: JSON.stringify({ phone_number, account_number }),
