@@ -237,6 +237,28 @@ app.post('/voting/stop', async (req, res) => {
   }
 });
 
+// Endpoint to get voting status
+app.get('/voting/status', async (req, res) => { 
+  const { position_name } = req.query;
+
+  if (!position_name) {
+    return res.status(400).json({ success: false, message: 'Position name is required.' });
+  }
+
+  try {
+    const result = await pool.query('SELECT voting_active FROM positions WHERE name = $1', [position_name]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Position not found.' });
+    }
+
+    res.json({ success: true, voting_active: result.rows[0].voting_active });
+  } catch (error) {
+    console.error('Error fetching voting status:', error);
+    res.status(500).json({ success: false, message: 'Database error.' });
+  }
+});
+
 
 
 

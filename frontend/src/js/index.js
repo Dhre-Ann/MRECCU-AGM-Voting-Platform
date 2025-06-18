@@ -1,4 +1,11 @@
-const API_BASE_URL = process.env.API_BASE_URL;
+// const API_BASE_URL = process.env.API_BASE_URL;
+const API_BASE_URL = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1' || 
+  window.location.hostname.startsWith('192.168.')
+    ? 'http://localhost:3000'
+    : 'https://mreccu-agm-voting-platform.onrender.com';
+
 console.log('API Base URL is:', API_BASE_URL);
 
 
@@ -371,6 +378,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+
+// function to load voting status (loads last saved state)
+async function loadVotingStatus(positionName) {
+  if (!positionName || positionName === 'Select') {
+    toggleVotingBtn.disabled = true;
+    toggleVotingBtn.textContent = 'Start Voting';
+    votingStats.classList.add('hidden');
+    votingInactiveMsg.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(positionName)}`);
+    const data = await response.json();
+
+    if (data.success) {
+      if (data.voting_active) {
+        toggleVotingBtn.textContent = 'Stop Voting';
+        votingStats.classList.remove('hidden');
+        votingInactiveMsg.classList.add('hidden');
+        votingStatusText.classList.remove('hidden');
+      } else {
+        toggleVotingBtn.textContent = 'Start Voting';
+        votingStats.classList.add('hidden');
+        votingInactiveMsg.classList.remove('hidden');
+        votingStatusText.classList.add('hidden');
+      }
+      toggleVotingBtn.disabled = false;
+    } else {
+      console.error(data.message);
+      toggleVotingBtn.disabled = true;
+    }
+  } catch (error) {
+    console.error('Error fetching voting status:', error);
+    toggleVotingBtn.disabled = true;
+  }
+}
+
+// Automatically load voting status when position changes
+if (positionSelect){
+  positionSelect.addEventListener('change', () => {
+    const selectedPosition = positionSelect.value;
+    loadVotingStatus(selectedPosition);
+  });
+}
+
+
 
 
 
