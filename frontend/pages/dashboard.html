@@ -23,21 +23,39 @@
     <!-- Main Content -->
     <main class="py-12 bg-white text-primary min-h-[35vh] sm:min-h-[35vh] lg:min-h-[32vh]">
         <div class="container mx-auto text-center">
-            <h3 class="text-lg sm:text-xl font-medium">
-                Voting will begin soon. Please stay tuned for further instructions.
+            <!-- Default Message -->
+            <h3 id="votingStatusMsg" class="text-lg sm:text-xl font-medium">
+            Voting will begin soon. Please stay tuned for further instructions.
             </h3>
-            <!-- Dynamic Voting Section -->
-
         </div>
 
+        <section id="votingSection" class="hidden my-8 px-4 mx-auto text-center">
+            <h2 id="positionTitle" class="text-xl sm:text-2xl font-bold text-accent4 mb-2"></h2>
+            <p id="votesAllowedText" class="text-sm text-accent2 italic mb-4"></p>
 
-        <section id="treasurer-section" class="my-8 px-4 mx-auto text-center">
+            <form id="voteForm" class="">
+                <div id="candidatesGrid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+
+                <p class="mt-4 text-xs text-accent2 italic" id="voteLimitNote"></p>
+
+                <div class="mt-6 text-center">
+                    <button id="submitVoteBtn"
+                    class="bg-accent4 hover:bg-light3 hover:border-2 hover:shadow-accent2 hover:shadow-md text-white font-semibold py-2 px-6 rounded-md transition">
+                    Vote!
+                    </button>
+                </div>
+            </form>
+        </section>
+
+
+        <!-- Hardcode sampel -->
+        <!-- <section id="treasurer-section" class="my-8 px-4 mx-auto text-center">
             <h2 class="text-xl sm:text-2xl font-bold text-accent4 mb-2">Treasurer</h2>
             <p class="text-sm text-accent2 italic mb-4">Select <strong>3</strong> out of the 5 candidates below</p>
 
             <form id="treasurer-vote-form" class="">
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <!-- Candidate 1 -->
+                    
                     <label
                         class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
                         <input type="checkbox" name="treasurer" value="candidate1" class="mt-1 accent-accent4" />
@@ -47,7 +65,7 @@
                         </div>
                     </label>
 
-                    <!-- Candidate 2 -->
+                    
                     <label
                         class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
                         <input type="checkbox" name="treasurer" value="candidate2" class="mt-1 accent-accent4" />
@@ -57,7 +75,7 @@
                         </div>
                     </label>
 
-                    <!-- Candidate 3 -->
+                    
                     <label
                         class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
                         <input type="checkbox" name="treasurer" value="candidate3" class="mt-1 accent-accent4" />
@@ -67,7 +85,7 @@
                         </div>
                     </label>
 
-                    <!-- Candidate 4 -->
+                    
                     <label
                         class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
                         <input type="checkbox" name="treasurer" value="candidate4" class="mt-1 accent-accent4" />
@@ -77,7 +95,7 @@
                         </div>
                     </label>
 
-                    <!-- Candidate 5 -->
+                    
                     <label
                         class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
                         <input type="checkbox" name="treasurer" value="candidate5" class="mt-1 accent-accent4" />
@@ -97,18 +115,10 @@
                         Vote!
                     </button>
                 </div>
-        </section>
+            </form>
+        </section> -->
 
-        </form>
-
-
-
-
-
-
-
-
-
+        
     </main>
 
 

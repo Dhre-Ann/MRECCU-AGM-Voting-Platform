@@ -15,6 +15,7 @@ const phoneInput = document.getElementById('phoneNumber');
 const accountInput = document.getElementById('accountNumber');
 const voterLoginForm = document.getElementById('voterForm');
 const resultDiv = document.getElementById('result');
+const voterId = localStorage.getItem('voterId') || "null";
 
 // login button
 if (loginRedirect) {
@@ -70,6 +71,7 @@ if (voterLoginForm){
 
       const data = await response.json();
       if (data.success) {
+        localStorage.setItem('voterId', data.voterId); // store locally
         window.location.href = './dashboard.html'; // go to next page
       } else {
         alert(data.message || 'Invalid login credentials.');
@@ -273,6 +275,7 @@ if (positionSelect){
   const selected = positionSelect.value;
   if (selected !== 'Select') {
     loadCandidates(selected);
+    loadActiveVoting();
   } else {
     candidateList.innerHTML = ''; // Clear if no position selected
   }
@@ -422,6 +425,7 @@ if (positionSelect){
   positionSelect.addEventListener('change', () => {
     const selectedPosition = positionSelect.value;
     loadVotingStatus(selectedPosition);
+    loadActiveVoting();
   });
 }
 
@@ -429,8 +433,232 @@ if (positionSelect){
 
 
 
+// ====================================== USER DASH ======================================
+
+const votingStatusMsg = document.getElementById('votingStatusMsg');
+const votingSection = document.getElementById('votingSection');
+const positionTitle = document.getElementById('positionTitle');
+const votesAllowedText = document.getElementById('votesAllowedText');
+const candidatesGrid = document.getElementById('candidatesGrid');
+const voteLimitNote = document.getElementById('voteLimitNote');
+const voteForm = document.getElementById('voteForm');
+const submitVoteBtn = document.getElementById('submitVoteBtn');
+let positionForVote = null;
+let hasVotedFlag = false;
+
+async function submitVoteForm(activePosition, hasVoted){
+  console.log(activePosition, ', ', hasVoted);
+
+  const selected = Array.from(voteForm.querySelectorAll('input[type="checkbox"]:checked'))
+    .map(cb => parseInt(cb.value));
 
 
+  if (selected.length === 0) {
+    alert('Please select at least one candidate to vote.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/voting/vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        voterId,
+        position: activePosition,
+        selectedCandidates: selected,
+      }),
+    });
+
+    console.log(voterId, ', ', activePosition );
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert('Thank you! Your vote has been recorded.');
+      hasVotedFlag = true;
+      voteForm.reset(); // optional: clears form
+      voteForm.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+      await loadActiveVoting();
+    } else {
+      // add checks for status 403
+      if (response.status === 403) {
+      alert(data.message || 'You have already voted for this position.');
+      return;
+    }
+      alert(`Error: ${data.message}`);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('An error occurred while submitting your vote.');
+  }
+}
+
+// async function loadActiveVoting() {
+//   console.log("run voting acting");
+//   try {
+//     const res = await fetch(`${API_BASE_URL}/voting/get-active`, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({
+//         voterId,
+//       }),
+//     });
+
+//     if (!res.ok) throw new Error('Failed to load active voting.');
+
+//     const data = await res.json();
+
+//     if (!data.success || !data.position) {
+//       if (votingSection){
+//         votingSection.classList.add('hidden');
+//         votingStatusMsg.classList.remove('hidden');
+//         votingStatusMsg.textContent = 'Voting will begin soon. Please stay tuned for further instructions.';
+//       }      
+//       return;
+//     }
+
+//     const { position, num_votes_allowed, candidates } = data;
+
+//     hasVotedFlag = data.hasVoted;
+
+//     if (positionTitle){
+//     positionTitle.textContent = position;
+//     votesAllowedText.innerHTML = `Select <strong>${num_votes_allowed}</strong> out of the ${candidates.length} candidates below.`;
+//     voteLimitNote.textContent = `You can only select up to ${num_votes_allowed} candidate(s) for this position.`;
+
+
+//       candidatesGrid.innerHTML = ''; // Clear grid before populating
+
+//       candidates.forEach((candidate) => {
+//         const label = document.createElement('label');
+//         label.className = 'flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4';
+
+//         label.innerHTML = `
+//           <input type="checkbox" name="${position}" value="${candidate.id}" class="mt-1 accent-accent4" />
+//           <div class="text-left pl-2">
+//             <p class="font-semibold text-primary">${candidate.name}</p>
+//             <p class="text-sm text-accent2 italic">${candidate.occupation}</p>
+//           </div>
+//         `;
+//         candidatesGrid.appendChild(label);
+//       });
+
+//       // NOW, after DOM updated → disable or enable based on hasVoted
+//       console.log('has voted?', data.hasVoted, 'flag', hasVotedFlag);
+      
+//       // ✅ Forcefully enable, THEN conditionally disable based on hasVoted
+//       const checkboxes = candidatesGrid.querySelectorAll('input[type="checkbox"]');
+//       console.log('checking has voted: ', hasVotedFlag);
+//       checkboxes.forEach(cb => cb.disabled = data.hasVoted);
+//       // checkboxes.forEach(cb => cb.disabled = hasVotedFlag);
+
+//     }
+
+//     positionForVote = position;
+    
+    
+//     if (votingStatusMsg && votingSection){
+//       votingStatusMsg.classList.add('hidden');
+//       votingSection.classList.remove('hidden');
+//     }
+
+//   } catch (err) {
+//     console.error(err);
+//     votingStatusMsg.textContent = 'Error loading voting configuration.';
+//   }
+// }
+
+
+// =======================================================================================================================
+
+async function loadActiveVoting() {
+  console.log("run voting acting");
+  try {
+    const res = await fetch(`${API_BASE_URL}/voting/get-active`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterId }),
+    });
+
+    if (!res.ok) throw new Error('Failed to load active voting.');
+
+    const data = await res.json();
+
+    if (!data.success || !data.position) {
+      if (votingSection){
+        votingSection.classList.add('hidden');
+        votingStatusMsg.classList.remove('hidden');
+        votingStatusMsg.textContent = 'Voting will begin soon. Please stay tuned for further instructions.';
+      }
+      return;
+    }
+
+    const { position, num_votes_allowed, candidates } = data;
+    hasVotedFlag = data.hasVoted;
+    positionForVote = position;
+
+    if (positionTitle){
+      positionTitle.textContent = position;
+      votesAllowedText.innerHTML = `Select <strong>${num_votes_allowed}</strong> out of the ${candidates.length} candidates below.`;
+      voteLimitNote.textContent = `You can only select up to ${num_votes_allowed} candidate(s) for this position.`;
+    }
+
+    candidatesGrid.innerHTML = ''; // Clear grid before populating
+
+    candidates.forEach((candidate) => {
+      const label = document.createElement('label');
+      label.className = 'flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4';
+      label.innerHTML = `
+        <input type="checkbox" name="${position}" value="${candidate.id}" class="mt-1 accent-accent4" />
+        <div class="text-left pl-2">
+          <p class="font-semibold text-primary">${candidate.name}</p>
+          <p class="text-sm text-accent2 italic">${candidate.occupation}</p>
+        </div>
+      `;
+      candidatesGrid.appendChild(label);
+    });
+
+    // ✅ Disable checkboxes only if user has already voted
+    const checkboxes = candidatesGrid.querySelectorAll('input[type="checkbox"]');
+    console.log('has user voted: ', hasVotedFlag);
+    // checkboxes.forEach(cb => cb.disabled = hasVotedFlag);
+    checkboxes.forEach(cb => {
+      cb.disabled = hasVotedFlag;
+      console.log('Checkbox', cb.value, 'disabled:', cb.disabled);
+    });
+
+    console.log('flag check', hasVotedFlag);
+
+    if (votingStatusMsg && votingSection){
+      votingStatusMsg.classList.add('hidden');
+      votingSection.classList.remove('hidden');
+    }
+
+  } catch (err) {
+    console.error(err);
+    votingStatusMsg.textContent = 'Error loading voting configuration.';
+  }
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadActiveVoting(); // Run immediately on page load
+
+  // clearInterval();
+  setInterval(() => {
+    loadActiveVoting(); // Run repeatedly every X seconds
+  }, 5000); // Example: every 5 seconds
+
+  // setInterval(loadActiveVoting, 10000);
+});
+
+// Event listener to allow voting
+if (voteForm && submitVoteBtn){
+  voteForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitVoteForm(positionForVote, hasVotedFlag);
+  });
+}
 
 
 

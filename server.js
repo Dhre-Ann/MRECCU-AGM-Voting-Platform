@@ -21,7 +21,6 @@ app.get('/', (req, res) => {
   res.send('Server is running!');
 });
 
-// endpoint to verify using identity (phone number and account number)
 app.post('/verify-voter', async (req, res) => {
   const { phone_number, account_number } = req.body;
 
@@ -31,21 +30,22 @@ app.post('/verify-voter', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT * FROM voters WHERE phone_number = $1 AND account_number = $2',
+      'SELECT id FROM voters WHERE phone_number = $1 AND account_number = $2',
       [phone_number, account_number]
     );
 
     if (result.rows.length > 0) {
-      console.log(result.rows[0]);
-      res.status(200).json({ success: true });
+      const voterId = result.rows[0].id;
+      return res.status(200).json({ success: true, voterId }); // ✅ Returning voterId here
     } else {
-      res.status(401).json({ success: false, message: 'No matching voter found' });
+      return res.status(401).json({ success: false, message: 'No matching voter found' });
     }
   } catch (error) {
     console.error('Error verifying voter:', error);
-    res.status(500).json({ success: false, message: 'Database error' });
+    return res.status(500).json({ success: false, message: 'Database error' });
   }
 });
+
 
 // =========================== ENDPOINTS FOR ACTIVE VOTING CONFIG ===========================
 // POST /add-candidate
@@ -215,6 +215,7 @@ app.post('/voting/stop', async (req, res) => {
   }
 
   try {
+    // Find the position by name
     const positionResult = await pool.query(
       'SELECT id FROM positions WHERE name = $1',
       [position_name]
@@ -224,18 +225,25 @@ app.post('/voting/stop', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Position not found' });
     }
 
+    const positionId = positionResult.rows[0].id;
+
+    // Set voting_active = FALSE for the position
     await pool.query(
       'UPDATE positions SET voting_active = FALSE WHERE id = $1',
-      [positionResult.rows[0].id]
+      [positionId]
     );
 
-    res.json({ success: true, message: 'Voting stopped successfully for this position' });
+    // Reset has_voted for all voters
+    await pool.query('UPDATE voters SET has_voted = FALSE');
+
+    res.json({ success: true, message: 'Voting stopped successfully, all voters reset' });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Database error' });
   }
 });
+
 
 // Endpoint to get voting status
 app.get('/voting/status', async (req, res) => { 
@@ -258,6 +266,109 @@ app.get('/voting/status', async (req, res) => {
     res.status(500).json({ success: false, message: 'Database error.' });
   }
 });
+
+
+// Endpoint to get active voting to update user dashboard
+app.post('/voting/get-active', async (req, res) => {
+  const { voterId } = req.body;
+  try {
+    // Get the currently active position
+    const positionResult = await pool.query(`
+      SELECT id, name, num_votes_allowed 
+      FROM positions 
+      WHERE voting_active = true 
+      LIMIT 1
+    `);
+
+    if (positionResult.rows.length === 0) {
+      return res.json({ success: true, position: null }); // No active voting
+    }
+
+    const position = positionResult.rows[0];
+
+    // Now get candidates for that position
+    const candidatesResult = await pool.query(
+      'SELECT id, name, occupation FROM candidates WHERE position_id = $1',
+      [position.id]
+    );
+
+    // Now get whether user has voted
+    const userResult = await pool.query(
+      'SELECT has_voted FROM voters WHERE id = $1',
+      [voterId]
+    );
+
+    res.json({
+      success: true,
+      position: position.name,
+      num_votes_allowed: position.num_votes_allowed,
+      candidates: candidatesResult.rows,
+      hasVoted: userResult.rows[0]?.has_voted || false,  // 👈 extract BOOLEAN directly
+    });
+
+
+  } catch (err) {
+    console.error('Error fetching active voting:', err);
+    res.status(500).json({ success: false, message: 'Error fetching active voting' });
+  }
+});
+
+
+// Endpoint to allow users to vote
+app.post('/voting/vote', async (req, res) => {
+  const { voterId, position, selectedCandidates } = req.body;
+
+  if (!voterId || !position || !Array.isArray(selectedCandidates) || selectedCandidates.length === 0) {
+    return res.status(400).json({ success: false, message: 'Voter ID, position, and selected candidates are required' });
+  }
+
+  try {
+    // ✅ Check that user has not voted yet
+    const voterResult = await pool.query('SELECT has_voted FROM voters WHERE id = $1', [voterId]);
+
+    if (voterResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Voter not found' });
+    }
+
+    if (voterResult.rows[0].has_voted) {
+      return res.status(403).json({ success: false, message: 'You have already voted for this position.' });
+    }
+
+    // ✅ Check that voting is active for the position
+    const posResult = await pool.query(
+      'SELECT id, num_votes_allowed FROM positions WHERE name = $1 AND voting_active = true',
+      [position]
+    );
+
+    if (posResult.rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Voting is not active for this position' });
+    }
+
+    const positionData = posResult.rows[0];
+
+    if (selectedCandidates.length > positionData.num_votes_allowed) {
+      return res.status(400).json({ success: false, message: `You can only vote for up to ${positionData.num_votes_allowed} candidate(s)` });
+    }
+
+    // ✅ Increment vote_count for each selected candidate
+    for (const candidateId of selectedCandidates) {
+      await pool.query(
+        'UPDATE candidates SET vote_count = vote_count + 1 WHERE id = $1 AND position_id = $2',
+        [candidateId, positionData.id]
+      );
+    }
+
+    // ✅ Set has_voted = true
+    await pool.query('UPDATE voters SET has_voted = TRUE WHERE id = $1', [voterId]);
+
+    return res.json({ success: true, message: 'Your vote has been recorded' });
+
+  } catch (err) {
+    console.error('Error submitting vote:', err);
+    return res.status(500).json({ success: false, message: 'Error submitting vote' });
+  }
+});
+
 
 
 
