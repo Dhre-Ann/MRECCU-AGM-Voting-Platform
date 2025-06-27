@@ -407,8 +407,8 @@ async function loadVotingStatus(positionName) {
         votingStats.classList.remove('hidden');
         votingInactiveMsg.classList.add('hidden');
         votingStatusText.classList.remove('hidden');
-        loadLiveVotingStats(positionForVote);
-        setInterval(() => loadLiveVotingStats(positionForVote), 3000);
+        loadLiveVotingStats(positionName);
+        setInterval(() => loadLiveVotingStats(positionName), 3000);
       } else {
         toggleVotingBtn.textContent = 'Start Voting';
         votingStats.classList.add('hidden');
@@ -608,6 +608,12 @@ async function loadVotingHistory() {
 
 async function loadLiveVotingStats(positionName) {
   console.log('live voting stats called');
+
+  if (!positionName || positionName === 'null') {
+    console.warn('No position name passed to live stats');
+    return;
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}/voting/live-stats?position_name=${encodeURIComponent(positionName)}`);
     const data = await response.json();
