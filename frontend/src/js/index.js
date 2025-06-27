@@ -427,13 +427,13 @@ async function loadVotingStatus(positionName) {
 }
 
 // Automatically load voting status when position changes
-if (positionSelect){
-  positionSelect.addEventListener('change', () => {
-    const selectedPosition = positionSelect.value;
-    loadVotingStatus(selectedPosition);
-    loadActiveVoting();
-  });
-}
+// if (positionSelect){
+//   positionSelect.addEventListener('change', () => {
+//     const selectedPosition = positionSelect.value;
+//     loadVotingStatus(selectedPosition);
+//     loadActiveVoting();
+//   });
+// }
 
 
 

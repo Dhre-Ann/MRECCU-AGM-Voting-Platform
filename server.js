@@ -291,6 +291,11 @@ app.get('/voting/status', async (req, res) => {
 // Endpoint to get active voting to update user dashboard
 app.post('/voting/get-active', async (req, res) => {
   const { voterId } = req.body;
+
+   if (!voterId) {
+    return res.status(400).json({ success: false, message: 'Missing voter ID' });
+  }
+  
   try {
     // Get the currently active position
     const positionResult = await pool.query(`
