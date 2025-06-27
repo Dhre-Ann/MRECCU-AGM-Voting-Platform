@@ -33,11 +33,9 @@
                 <select id="positionSelect" title="select_position"
                     class="w-full px-4 py-2 border border-accent4 rounded-md focus:outline-none focus:ring-2 focus:ring-accent4">
                     <option disabled selected>Select</option>
-                    <option>President</option>
-                    <option>Vice President</option>
-                    <option>Public Relations Officer</option>
-                    <option>Treasurer</option>
-                    <option>Secretary</option>
+                    <option>Board of Directors</option>
+                    <option>Credit Committee</option>
+                    <option>Supervisory Committee</option>
                 </select>
             </div>
 
@@ -107,6 +105,14 @@
                     </button>
                 </div>
             </div>
+
+            <div class="bg-white p-3 rounded-md shadow">
+                <button id="" type="button"
+                        class="text-center bg-accent4 text-white font-semibold py-2 px-4 rounded-md hover:bg-light3 transition">
+                    View Results
+                </button>
+            </div>
+
         </aside>
     </div>
 
@@ -117,43 +123,26 @@
     <div class="flex flex-col lg:flex-row gap-8 p-6">
         <!-- Active Voting Setup -->
         <section class="lg:w-2/3 bg-white p-6 rounded-xl shadow space-y-4">
-            <!-- Live features + progress bars using FLowbite -->
-            <!-- number of votes cast -->
-            <!-- number of votes remaining -->
-            <!-- votes per candidate -->
-            <!-- Countdown -->
-
-
             <h2 class="text-xl text-center font-bold text-primary">Voting Activity</h2>
 
-            <!-- Paragraph shown when voting is inactive -->
-            <p id="votingInactiveMsg" class="text-center text-accent2 italic">Voting is not active at the moment. Once
-                voting begins, live results will appear here.</p>
+            <p id="votingInactiveMsg" class="text-center text-accent2 italic">Voting is not active at the moment.</p>
 
-            <!-- Live Voting Stats (Initially Hidden) -->
             <div id="votingStats" class="hidden space-y-4">
                 <div>
-                    <label class="font-medium">Votes Cast:</label>
-                    <div class="w-full bg-gray-200 rounded-full h-4">
-                        <div id="votesProgress" class="w-0/10 bg-accent4 h-4 rounded-full"></div>
-                    </div>
-                    <p class="text-sm text-primary/70"><span id="votesCount">0</span> votes cast out of <span
-                            id="votesTotal">0</span> allowed</p>
+                <label class="font-medium">Votes Cast:</label>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div id="votesProgress" class="w-0 bg-accent4 h-4 rounded-full transition-all duration-300"></div>
+                </div>
+                <p class="text-sm text-primary/70"><span id="votesCount">0</span> votes cast out of <span id="votesTotal">0</span> registered voters</p>
                 </div>
 
-                <div id="candidateVotes" class="space-y-2 text-sm">
-                    <!-- Example dynamic entry:
-      <div>
-        <span>Jane Doe:</span>
-        <progress value="23" max="100"></progress> 23 votes
-      </div>
-      -->
-                </div>
+                <div id="candidateVotes" class="space-y-2 text-sm"></div>
             </div>
         </section>
 
 
-        <aside class="lg:w-1/3 bg-white p-4 rounded-xl shadow space-y-4">
+
+        <!-- <aside class="lg:w-1/3 bg-white p-4 rounded-xl shadow space-y-4">
             <h3 class="text-lg text-center font-bold text-primary">Voting History</h3>
             <ul class="space-y-3 text-sm">
                 <li class="bg-white p-3 rounded-md shadow">
@@ -167,9 +156,18 @@
                     Status: Closed
                 </li>
             </ul>
+        </aside> -->
 
+        <aside class="lg:w-1/3 bg-white p-4 rounded-xl shadow space-y-4">
+            <h3 class="text-lg text-center font-bold text-primary">Voting History</h3>
+            
+            <ul id="votingHistoryList" class="space-y-3 text-sm">
+                <!-- Items will be dynamically inserted here -->
+            </ul>
 
+            <p id="noVotingHistoryMsg" class="text-center text-accent2 italic hidden">No completed positions yet.</p>
         </aside>
+
 
 
     </div>
@@ -194,71 +192,12 @@
     <!-- ------------------------------------------------------------------------------------------------------------------- -->
 
 
-
-
-
-    <section class="min-h-screen bg-light4 px-4 py-8 text-primary">
-        <div class="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-md space-y-8">
-
-            <!-- Title -->
-            <div class="text-center">
-                <h2 class="text-2xl font-bold text-accent4">Admin Dashboard</h2>
-                <p class="text-sm italic text-accent2">Manage voting configurations and participants</p>
-            </div>
-
-            <!-- Add Position -->
-            <form id="positionForm" class="space-y-4">
-                <h3 class="text-xl font-semibold text-accent4">Add New Position</h3>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1">Position Name:</label>
-                    <input type="text" id="positionName" required
-                        class="w-full px-4 py-2 border border-accent3 rounded-md" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1">Number of Votes Allowed:</label>
-                    <input type="number" id="votesAllowed" required
-                        class="w-full px-4 py-2 border border-accent3 rounded-md" />
-                </div>
-
-                <!-- Candidates -->
-                <div id="candidateFields" class="space-y-2">
-                    <label class="block text-sm font-medium">Candidate Names:</label>
-                    <div class="flex gap-2">
-                        <input type="text" name="candidate[]"
-                            class="flex-1 px-4 py-2 border border-accent3 rounded-md" />
-                        <button type="button" onclick="addCandidateField()"
-                            class="bg-accent4 text-white px-3 rounded-md">+</button>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <label class="text-sm font-medium">Active:</label>
-                    <input type="checkbox" id="positionStatus" class="h-5 w-5 accent-accent4" />
-                </div>
-
-                <button type="submit" class="bg-accent4 text-white px-4 py-2 rounded-md hover:bg-light3">Add
-                    Position</button>
-            </form>
-
-            <!-- Voting Toggle -->
-            <div class="flex items-center justify-between border-t pt-6">
-                <label class="font-medium">Activate Voting:</label>
-                <input type="checkbox" id="votingToggle" class="h-6 w-6 accent-accent4" />
-            </div>
-
-            <!-- CSV Upload -->
-            <form id="uploadForm" class="space-y-3 border-t pt-6">
-                <h3 class="text-xl font-semibold text-accent4">Upload Voter List (.csv)</h3>
-                <input type="file" id="csvUpload" accept=".csv"
-                    class="block w-full border border-accent3 rounded-md p-2" />
-                <button type="submit" class="bg-accent4 text-white px-4 py-2 rounded-md hover:bg-light3">Upload
-                    CSV</button>
-            </form>
-
-        </div>
+    <section>
+        <!-- Voting results -->
     </section>
+
+
+    
 
 
     <!-- Footer -->

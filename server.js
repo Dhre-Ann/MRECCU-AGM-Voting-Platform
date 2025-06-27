@@ -118,7 +118,7 @@ app.get('/get-position-name', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Position not found' });
+      return res.status(404).json({ success: false, message: 'Position not found - get postion name' });
     }
 
     return res.json({ success: true, position: result.rows[0] });
@@ -161,19 +161,37 @@ app.post('/voting/start', async (req, res) => {
   }
 
   try {
-    // Get the position details
+    // Check if any other voting is currently active
+    const activeVotingResult = await pool.query(
+      'SELECT name FROM positions WHERE voting_active = TRUE'
+    );
+
+    if (activeVotingResult.rows.length > 0) {
+      const activePosition = activeVotingResult.rows[0].name;
+      return res.status(400).json({
+        success: false,
+        message: `Voting is currently active for "${activePosition}". Please stop that voting before starting a new one.`,
+      });
+    }
+
+    // Get the position details including voting_complete
     const positionResult = await pool.query(
-      'SELECT id, name, num_votes_allowed FROM positions WHERE name = $1',
+      'SELECT id, voting_complete, num_votes_allowed FROM positions WHERE name = $1',
       [position_name]
     );
 
     if (positionResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Position not found' });
+      return res.status(404).json({ success: false, message: 'Position not found - start voting' });
     }
 
     const position = positionResult.rows[0];
 
-    // Check if there are any candidates
+    // Prevent starting if voting has been completed already
+    if (position.voting_complete) {
+      return res.status(400).json({ success: false, message: 'Voting for this position has already been completed.' });
+    }
+
+    // Check candidate count
     const candidatesResult = await pool.query(
       'SELECT COUNT(*) FROM candidates WHERE position_id = $1',
       [position.id]
@@ -182,28 +200,29 @@ app.post('/voting/start', async (req, res) => {
     const candidateCount = parseInt(candidatesResult.rows[0].count, 10);
 
     if (candidateCount === 0) {
-      return res.status(400).json({ success: false, message: 'No candidates found for this position' });
+      return res.status(400).json({ success: false, message: 'No candidates found for this position.' });
     }
 
-    // Check if number_of_votes is less than candidates set
-    console.log("candidate count: ", candidateCount);
+    // Check num_votes_allowed is appropriate
     if (!position.num_votes_allowed || position.num_votes_allowed <= 0 || position.num_votes_allowed >= candidateCount) {
       return res.status(400).json({ success: false, message: 'Number of votes allowed is not appropriate for this position.' });
     }
 
-    // Set voting_active = true for this position
+    // ✅ Start voting for this position
     await pool.query(
       'UPDATE positions SET voting_active = TRUE WHERE id = $1',
       [position.id]
     );
 
-    res.json({ success: true, message: 'Voting started successfully for this position' });
+    res.json({ success: true, message: `Voting started successfully for ${position_name}` });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Database error' });
   }
 });
+
+
 
 
 // Endpoint to stop voting
@@ -222,27 +241,28 @@ app.post('/voting/stop', async (req, res) => {
     );
 
     if (positionResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Position not found' });
+      return res.status(404).json({ success: false, message: 'Position not found - stop voting' });
     }
 
     const positionId = positionResult.rows[0].id;
 
-    // Set voting_active = FALSE for the position
+    // ✅ Set voting_active = FALSE **and** voting_complete = TRUE
     await pool.query(
-      'UPDATE positions SET voting_active = FALSE WHERE id = $1',
+      'UPDATE positions SET voting_active = FALSE, voting_complete = TRUE WHERE id = $1',
       [positionId]
     );
 
     // Reset has_voted for all voters
     await pool.query('UPDATE voters SET has_voted = FALSE');
 
-    res.json({ success: true, message: 'Voting stopped successfully, all voters reset' });
+    res.json({ success: true, message: 'Voting stopped successfully. Position marked complete. All voters reset.' });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Database error' });
   }
 });
+
 
 
 // Endpoint to get voting status
@@ -257,7 +277,7 @@ app.get('/voting/status', async (req, res) => {
     const result = await pool.query('SELECT voting_active FROM positions WHERE name = $1', [position_name]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Position not found.' });
+      return res.status(404).json({ success: false, message: 'Position not found - voting status.' });
     }
 
     res.json({ success: true, voting_active: result.rows[0].voting_active });
@@ -368,6 +388,68 @@ app.post('/voting/vote', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Error submitting vote' });
   }
 });
+
+// Endpoint to get the voting history
+app.get('/voting/history', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.id, p.name, p.voting_complete, COALESCE(SUM(c.vote_count), 0) AS votes_cast
+      FROM positions p
+      LEFT JOIN candidates c ON p.id = c.position_id
+      WHERE p.voting_complete = true
+      GROUP BY p.id, p.name, p.voting_complete
+      ORDER BY p.id
+    `);
+    res.json({ success: true, history: result.rows });
+  } catch (err) {
+    console.error('Error fetching voting history:', err);
+    res.status(500).json({ success: false, message: 'Error fetching voting history.' });
+  }
+});
+
+// Endpoint to get live updates during voting
+app.get('/voting/live-stats', async (req, res) => {
+  const { position_name } = req.query;
+
+  if (!position_name) {
+    return res.status(400).json({ success: false, message: 'Position name is required' });
+  }
+
+  try {
+    // Get position details
+    const positionResult = await pool.query('SELECT id FROM positions WHERE name = $1', [position_name]);
+    if (positionResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Position not found - live stats' });
+    }
+    const positionId = positionResult.rows[0].id;
+
+    // Total number of voters in the system
+    const totalVotersResult = await pool.query('SELECT COUNT(*) FROM voters');
+    const totalVoters = parseInt(totalVotersResult.rows[0].count, 10);
+
+    // ✅ Count the number of *people* who have voted (NOT the number of votes cast)
+    const votersWhoVotedResult = await pool.query('SELECT COUNT(*) FROM voters WHERE has_voted = TRUE');
+    const votersWhoVoted = parseInt(votersWhoVotedResult.rows[0].count, 10);
+
+    // Votes per candidate
+    const candidateVotesResult = await pool.query(
+      'SELECT name, vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
+      [positionId]
+    );
+
+    res.json({
+      success: true,
+      totalVoters,
+      votersWhoVoted, // ✅ <-- renamed for clarity
+      candidates: candidateVotesResult.rows,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
 
 
 

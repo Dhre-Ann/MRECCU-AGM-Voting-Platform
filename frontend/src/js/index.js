@@ -151,6 +151,7 @@ if (toggleVotingBtn){
         votingInactiveMsg.classList.add('hidden');
         votingStatusText.classList.remove('hidden');
         votingStats.classList.remove('hidden');
+        loadActiveVoting();
       } else {
         alert(data.message || 'Unable to start voting.');
       }
@@ -170,6 +171,8 @@ if (toggleVotingBtn){
         votingStats.classList.add('hidden');
         votingStatusText.classList.add('hidden');
         votingInactiveMsg.classList.remove('hidden');
+        loadVotingHistory();
+        loadActiveVoting();
       } else {
         alert(data.message || 'Unable to stop voting.');
       }
@@ -276,6 +279,7 @@ if (positionSelect){
   if (selected !== 'Select') {
     loadCandidates(selected);
     loadActiveVoting();
+    // location.reload();
   } else {
     candidateList.innerHTML = ''; // Clear if no position selected
   }
@@ -403,6 +407,8 @@ async function loadVotingStatus(positionName) {
         votingStats.classList.remove('hidden');
         votingInactiveMsg.classList.add('hidden');
         votingStatusText.classList.remove('hidden');
+        loadLiveVotingStats(positionForVote);
+        setInterval(() => loadLiveVotingStats(positionForVote), 3000);
       } else {
         toggleVotingBtn.textContent = 'Start Voting';
         votingStats.classList.add('hidden');
@@ -476,9 +482,12 @@ async function submitVoteForm(activePosition, hasVoted){
     if (data.success) {
       alert('Thank you! Your vote has been recorded.');
       hasVotedFlag = true;
-      voteForm.reset(); // optional: clears form
-      voteForm.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+      if (voteForm){
+        voteForm.reset(); // optional: clears form
+        voteForm.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+      }      
       await loadActiveVoting();
+      await loadLiveVotingStats(activePosition);
     } else {
       // add checks for status 403
       if (response.status === 403) {
@@ -492,84 +501,6 @@ async function submitVoteForm(activePosition, hasVoted){
     alert('An error occurred while submitting your vote.');
   }
 }
-
-// async function loadActiveVoting() {
-//   console.log("run voting acting");
-//   try {
-//     const res = await fetch(`${API_BASE_URL}/voting/get-active`, {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({
-//         voterId,
-//       }),
-//     });
-
-//     if (!res.ok) throw new Error('Failed to load active voting.');
-
-//     const data = await res.json();
-
-//     if (!data.success || !data.position) {
-//       if (votingSection){
-//         votingSection.classList.add('hidden');
-//         votingStatusMsg.classList.remove('hidden');
-//         votingStatusMsg.textContent = 'Voting will begin soon. Please stay tuned for further instructions.';
-//       }      
-//       return;
-//     }
-
-//     const { position, num_votes_allowed, candidates } = data;
-
-//     hasVotedFlag = data.hasVoted;
-
-//     if (positionTitle){
-//     positionTitle.textContent = position;
-//     votesAllowedText.innerHTML = `Select <strong>${num_votes_allowed}</strong> out of the ${candidates.length} candidates below.`;
-//     voteLimitNote.textContent = `You can only select up to ${num_votes_allowed} candidate(s) for this position.`;
-
-
-//       candidatesGrid.innerHTML = ''; // Clear grid before populating
-
-//       candidates.forEach((candidate) => {
-//         const label = document.createElement('label');
-//         label.className = 'flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4';
-
-//         label.innerHTML = `
-//           <input type="checkbox" name="${position}" value="${candidate.id}" class="mt-1 accent-accent4" />
-//           <div class="text-left pl-2">
-//             <p class="font-semibold text-primary">${candidate.name}</p>
-//             <p class="text-sm text-accent2 italic">${candidate.occupation}</p>
-//           </div>
-//         `;
-//         candidatesGrid.appendChild(label);
-//       });
-
-//       // NOW, after DOM updated → disable or enable based on hasVoted
-//       console.log('has voted?', data.hasVoted, 'flag', hasVotedFlag);
-      
-//       // ✅ Forcefully enable, THEN conditionally disable based on hasVoted
-//       const checkboxes = candidatesGrid.querySelectorAll('input[type="checkbox"]');
-//       console.log('checking has voted: ', hasVotedFlag);
-//       checkboxes.forEach(cb => cb.disabled = data.hasVoted);
-//       // checkboxes.forEach(cb => cb.disabled = hasVotedFlag);
-
-//     }
-
-//     positionForVote = position;
-    
-    
-//     if (votingStatusMsg && votingSection){
-//       votingStatusMsg.classList.add('hidden');
-//       votingSection.classList.remove('hidden');
-//     }
-
-//   } catch (err) {
-//     console.error(err);
-//     votingStatusMsg.textContent = 'Error loading voting configuration.';
-//   }
-// }
-
-
-// =======================================================================================================================
 
 async function loadActiveVoting() {
   console.log("run voting acting");
@@ -601,8 +532,7 @@ async function loadActiveVoting() {
       positionTitle.textContent = position;
       votesAllowedText.innerHTML = `Select <strong>${num_votes_allowed}</strong> out of the ${candidates.length} candidates below.`;
       voteLimitNote.textContent = `You can only select up to ${num_votes_allowed} candidate(s) for this position.`;
-    }
-
+    
     candidatesGrid.innerHTML = ''; // Clear grid before populating
 
     candidates.forEach((candidate) => {
@@ -617,37 +547,115 @@ async function loadActiveVoting() {
       `;
       candidatesGrid.appendChild(label);
     });
+  }
 
     // ✅ Disable checkboxes only if user has already voted
-    const checkboxes = candidatesGrid.querySelectorAll('input[type="checkbox"]');
-    console.log('has user voted: ', hasVotedFlag);
-    // checkboxes.forEach(cb => cb.disabled = hasVotedFlag);
-    checkboxes.forEach(cb => {
-      cb.disabled = hasVotedFlag;
-      console.log('Checkbox', cb.value, 'disabled:', cb.disabled);
-    });
-
+    if (candidatesGrid){
+      const checkboxes = candidatesGrid.querySelectorAll('input[type="checkbox"]');
+      console.log('has user voted: ', hasVotedFlag);
+      // checkboxes.forEach(cb => cb.disabled = hasVotedFlag);
+      checkboxes.forEach(cb => {
+        cb.disabled = hasVotedFlag;
+        console.log('Checkbox', cb.value, 'disabled:', cb.disabled);
+      });
+  }
     console.log('flag check', hasVotedFlag);
 
     if (votingStatusMsg && votingSection){
       votingStatusMsg.classList.add('hidden');
       votingSection.classList.remove('hidden');
     }
-
   } catch (err) {
     console.error(err);
-    votingStatusMsg.textContent = 'Error loading voting configuration.';
+    if (votingStatusMsg){
+      votingStatusMsg.textContent = 'Error loading voting configuration.';
+    }
+  }
+}
+
+// Function to load Voting History
+async function loadVotingHistory() {
+  console.log('load voting history called');
+  const historyList = document.getElementById('votingHistoryList'); // You need to add this id to <ul>
+
+  if (historyList){
+    historyList.innerHTML = ''; // Clear previous
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/voting/history`);
+      const data = await res.json();
+
+      if (data.success && data.history.length > 0) {
+        data.history.forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'bg-white p-3 rounded-md shadow';
+          li.innerHTML = `
+            <strong>${item.name}</strong><br/>
+            Status: ${item.voting_complete ? 'Closed' : 'Open'}
+          `;
+          historyList.appendChild(li);
+        });
+      } else {
+        historyList.innerHTML = '<li class="text-center text-accent2 italic"> No completed voting sessions yet.</li>';
+      }
+    
+    } catch (err) {
+      console.error(err);
+      historyList.innerHTML = '<li>Error loading voting history.</li>';
+    }
+  }
+}
+
+async function loadLiveVotingStats(positionName) {
+  console.log('live voting stats called');
+  try {
+    const response = await fetch(`${API_BASE_URL}/voting/live-stats?position_name=${encodeURIComponent(positionName)}`);
+    const data = await response.json();
+
+    if (!data.success) {
+      console.error(data.message);
+      return;
+    }
+
+    // Update Progress Bar → ✅ Percentage of voters who voted
+    const percent = data.totalVoters === 0 ? 0 : Math.round((data.votersWhoVoted / data.totalVoters) * 100);
+    const progressBar = document.getElementById('votesProgress');
+    progressBar.style.width = `${percent}%`;
+
+    // ✅ Show number of voters who have voted
+    document.getElementById('votesCount').textContent = data.votersWhoVoted;
+    document.getElementById('votesTotal').textContent = data.totalVoters;
+
+    // Update candidate votes breakdown
+    const candidateVotes = document.getElementById('candidateVotes');
+    candidateVotes.innerHTML = '';
+
+    data.candidates.forEach(candidate => {
+      const div = document.createElement('div');
+      div.className = 'flex justify-between';
+      div.innerHTML = `
+        <span>${candidate.name}</span>
+        <span class="font-semibold text-primary">${candidate.vote_count} votes</span>
+      `;
+      candidateVotes.appendChild(div);
+    });
+
+  } catch (err) {
+    console.error('Error fetching live voting stats:', err);
   }
 }
 
 
+
 document.addEventListener('DOMContentLoaded', () => {
   loadActiveVoting(); // Run immediately on page load
+  loadVotingHistory();
+  loadLiveVotingStats(positionForVote);  
 
   // clearInterval();
-  setInterval(() => {
-    loadActiveVoting(); // Run repeatedly every X seconds
-  }, 5000); // Example: every 5 seconds
+  // setInterval(() => {
+  //   loadActiveVoting(); // Run repeatedly every X seconds
+  // }, 10000); // Example: every 10 seconds
 
   // setInterval(loadActiveVoting, 10000);
 });
@@ -659,6 +667,8 @@ if (voteForm && submitVoteBtn){
     submitVoteForm(positionForVote, hasVotedFlag);
   });
 }
+
+
 
 
 
