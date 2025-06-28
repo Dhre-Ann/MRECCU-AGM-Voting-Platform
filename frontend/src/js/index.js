@@ -126,6 +126,39 @@ const candidateList = document.getElementById('candidateList');
 
 
 // Toggle voting start and stop
+async function updateToggleVotingButtonState() {
+  const selectedPosition = positionSelect.value;
+
+  if (!selectedPosition || selectedPosition === 'Select') return;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(selectedPosition)}`);
+    const data = await res.json();
+
+    if (!data.success) {
+      console.warn(data.message || 'Unable to fetch voting status.');
+      return;
+    }
+
+    // Set the button and UI state based on voting_active
+    if (data.voting_active) {
+      toggleVotingBtn.textContent = 'Stop Voting';
+      votingInactiveMsg.classList.add('hidden');
+      votingStatusText.classList.remove('hidden');
+      votingStats.classList.remove('hidden');
+      loadActiveVoting(); // Update stats if voting is ongoing
+    } else {
+      toggleVotingBtn.textContent = 'Start Voting';
+      votingStats.classList.add('hidden');
+      votingStatusText.classList.add('hidden');
+      votingInactiveMsg.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.error('Error checking voting status:', err);
+  }
+}
+
+
 if (toggleVotingBtn){
   toggleVotingBtn.addEventListener('click', async () => {
   const selectedPosition = positionSelect.value;
@@ -151,6 +184,7 @@ if (toggleVotingBtn){
         votingInactiveMsg.classList.add('hidden');
         votingStatusText.classList.remove('hidden');
         votingStats.classList.remove('hidden');
+        updateToggleVotingButtonState();
         loadActiveVoting();
       } else {
         alert(data.message || 'Unable to start voting.');
@@ -171,6 +205,7 @@ if (toggleVotingBtn){
         votingStats.classList.add('hidden');
         votingStatusText.classList.add('hidden');
         votingInactiveMsg.classList.remove('hidden');
+        updateToggleVotingButtonState();
         loadVotingHistory();
         loadActiveVoting();
       } else {
@@ -279,6 +314,7 @@ if (positionSelect){
   if (selected !== 'Select') {
     loadCandidates(selected);
     loadActiveVoting();
+    updateToggleVotingButtonState();
     // location.reload();
   } else {
     candidateList.innerHTML = ''; // Clear if no position selected
@@ -425,15 +461,6 @@ async function loadVotingStatus(positionName) {
     toggleVotingBtn.disabled = true;
   }
 }
-
-// Automatically load voting status when position changes
-// if (positionSelect){
-//   positionSelect.addEventListener('change', () => {
-//     const selectedPosition = positionSelect.value;
-//     loadVotingStatus(selectedPosition);
-//     loadActiveVoting();
-//   });
-// }
 
 
 
@@ -656,7 +683,8 @@ async function loadLiveVotingStats(positionName) {
 document.addEventListener('DOMContentLoaded', () => {
   loadActiveVoting(); // Run immediately on page load
   loadVotingHistory();
-  loadLiveVotingStats(positionForVote);  
+  loadLiveVotingStats(positionForVote); 
+  updateToggleVotingButtonState(); 
 
   // clearInterval();
   // setInterval(() => {
