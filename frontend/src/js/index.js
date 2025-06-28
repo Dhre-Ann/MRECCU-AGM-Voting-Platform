@@ -531,11 +531,6 @@ async function submitVoteForm(activePosition, hasVoted){
 }
 
 async function monitorVotingStatus(positionName) {
-  console.log('monitoring voting status for position:', positionName);
-  if (!positionName || positionName === 'Select'){
-    console.warn('no position available for monitoring');
-      return;
-    }
   try {
     const res = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(positionName)}`);
     const data = await res.json();
@@ -543,20 +538,19 @@ async function monitorVotingStatus(positionName) {
     if (!data.success) return;
 
     const currentVotingActive = data.voting_active;
-    console.log('voting active for: ', currentVotingActive);
-    console.log('prev active: ', previousVotingActive);
 
-    // Only trigger if voting status changed
-    if (previousVotingActive !== null && currentVotingActive !== previousVotingActive) {
+    if (previousVotingActive === null) {
+      previousVotingActive = currentVotingActive; // Set initial state
+    } else if (currentVotingActive !== previousVotingActive) {
       console.log('Voting status changed. Reloading voting interface...');
-      await loadActiveVoting(); // or call location.reload() if necessary
+      previousVotingActive = currentVotingActive;
+      await loadActiveVoting();
     }
-
-    previousVotingActive = currentVotingActive;
   } catch (err) {
     console.error('Error checking voting status:', err);
   }
 }
+
 
 
 async function loadActiveVoting() {
@@ -717,7 +711,6 @@ document.addEventListener('DOMContentLoaded', () => {
   updateToggleVotingButtonState(); 
 
   setInterval(() => {
-    loadActiveVoting();
     monitorVotingStatus(positionForVote);
   }, 3000); // check every 8 seconds (adjust as needed)
 
