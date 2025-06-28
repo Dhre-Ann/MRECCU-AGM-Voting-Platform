@@ -686,7 +686,10 @@ async function loadLiveVotingStats(positionName) {
     // Update Progress Bar → ✅ Percentage of voters who voted
     const percent = data.totalVoters === 0 ? 0 : Math.round((data.votersWhoVoted / data.totalVoters) * 100);
     const progressBar = document.getElementById('votesProgress');
-    progressBar.style.width = `${percent}%`;
+    if (progressBar){
+      progressBar.style.width = `${percent}%`;
+    }
+    
 
     // ✅ Show number of voters who have voted
     document.getElementById('votesCount').textContent = data.votersWhoVoted;
