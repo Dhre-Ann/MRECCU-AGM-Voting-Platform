@@ -535,31 +535,6 @@ async function submitVoteForm(activePosition, hasVoted){
   }
 }
 
-// async function monitorVotingStatus(positionName) {
-//   if (!positionName || positionName === 'Select'){
-//     console.warn('no position detected');
-//     return;
-//   }
-//   try {
-//     const res = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(positionName)}`);
-//     const data = await res.json();
-
-//     if (!data.success) return;
-
-//     const currentVotingActive = data.voting_active;
-
-//     if (previousVotingActive === null) {
-//       previousVotingActive = currentVotingActive; // Set initial state
-//     } else if (currentVotingActive !== previousVotingActive) {
-//       console.log('Voting status changed. Reloading voting interface...');
-//       previousVotingActive = currentVotingActive;
-//       await loadActiveVoting();
-//     }
-//   } catch (err) {
-//     console.error('Error checking voting status:', err);
-//   }
-// }
-
 async function monitorVotingStatus() {
   try {
     const res = await fetch(`${API_BASE_URL}/voting/get-active`, {
@@ -743,10 +718,11 @@ document.addEventListener('DOMContentLoaded', () => {
   loadVotingHistory();
   loadLiveVotingStats(positionForVote); 
   updateToggleVotingButtonState(); 
-  monitorVotingStatus(positionForVote);
+  monitorVotingStatus();
 
   setInterval(() => {
-    monitorVotingStatus(positionForVote);
+    monitorVotingStatus();
+    loadLiveVotingStats(positionName);
   }, 3000); // check every 8 seconds (adjust as needed)
 
   // clearInterval();
