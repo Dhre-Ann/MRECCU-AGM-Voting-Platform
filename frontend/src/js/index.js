@@ -6,9 +6,6 @@ const API_BASE_URL =
     ? 'http://localhost:3000'
     : 'https://mreccu-agm-voting-platform.onrender.com';
 
-console.log('API Base URL is:', API_BASE_URL);
-
-
 // Variables
 const loginRedirect = document.getElementById("login-redirect-btn");
 const phoneInput = document.getElementById('phoneNumber');
@@ -82,18 +79,6 @@ if (voterLoginForm){
   });
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 // ====================================== ADMIN DASH ======================================
 
 const toggleUploadBtn = document.getElementById('toggleUploadCSV');
@@ -112,7 +97,6 @@ if (toggleVoting) {
     toggleVotingSection.classList.toggle('hidden');
   });
 }
-
 
 const toggleVotingBtn = document.getElementById('toggleVotingBtn');
 const votingInactiveMsg = document.getElementById('votingInactiveMsg');
@@ -160,7 +144,6 @@ async function updateToggleVotingButtonState() {
     console.error('Error checking voting status:', err);
   }
 }
-
 
 if (toggleVotingBtn){
   toggleVotingBtn.addEventListener('click', async () => {
@@ -222,9 +205,6 @@ if (toggleVotingBtn){
 });
 }
 
-
-
-
 // ---------------------------- ACTIVE VOTING CONFIG LOGIC ----------------------------
 
 if (addCandidateBtn){
@@ -262,7 +242,6 @@ if (addCandidateBtn){
 });
 }
 
-
 // Function to fetch and display candidates for selected position
 async function loadCandidates(positionName) {
   const response = await fetch(`${API_BASE_URL}/get-candidates?position=${encodeURIComponent(positionName)}`);
@@ -288,7 +267,6 @@ async function loadCandidates(positionName) {
     candidateList.appendChild(li);
   });
 }
-
 
 // Function to remove a candidate by ID
 async function removeCandidate(candidateId, positionName) {
@@ -318,7 +296,6 @@ if (positionSelect){
     loadCandidates(selected);
     loadActiveVoting();
     updateToggleVotingButtonState();
-    // location.reload();
   } else {
     candidateList.innerHTML = ''; // Clear if no position selected
   }
@@ -327,7 +304,6 @@ if (positionSelect){
 
 
 // SET NUMBER OF VOTES ALLOWED:
-
 document.addEventListener('DOMContentLoaded', () => {
   const positionSelect = document.getElementById('positionSelect');
   const votesAllowedText = document.getElementById('votesAllowedText');
@@ -365,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   }
-  
 
   // Handle Set/Edit button click
   if (setVotesAllowedBtn){
@@ -425,7 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-
 // function to load voting status (loads last saved state)
 async function loadVotingStatus(positionName) {
   if (!positionName || positionName === 'Select') {
@@ -435,7 +409,6 @@ async function loadVotingStatus(positionName) {
     votingInactiveMsg.classList.remove('hidden');
     return;
   }
-
   try {
     const response = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(positionName)}`);
     const data = await response.json();
@@ -465,10 +438,6 @@ async function loadVotingStatus(positionName) {
   }
 }
 
-
-
-
-
 // ====================================== USER DASH ======================================
 
 const votingStatusMsg = document.getElementById('votingStatusMsg');
@@ -482,8 +451,7 @@ const submitVoteBtn = document.getElementById('submitVoteBtn');
 let positionForVote = null;
 let hasVotedFlag = false;
 
-async function submitVoteForm(activePosition, hasVoted){
-  console.log(activePosition, ', ', hasVoted);
+async function submitVoteForm(activePosition){
 
   const selected = Array.from(voteForm.querySelectorAll('input[type="checkbox"]:checked'))
     .map(cb => parseInt(cb.value));
@@ -504,8 +472,6 @@ async function submitVoteForm(activePosition, hasVoted){
         selectedCandidates: selected,
       }),
     });
-
-    console.log(voterId, ', ', activePosition );
 
     const data = await response.json();
 
@@ -563,7 +529,6 @@ async function monitorVotingStatus() {
 
 
 async function loadActiveVoting() {
-  console.log("run voting acting");
   try {
     const res = await fetch(`${API_BASE_URL}/voting/get-active`, {
       method: 'POST',
@@ -619,8 +584,6 @@ async function loadActiveVoting() {
         console.log('Checkbox', cb.value, 'disabled:', cb.disabled);
       });
   }
-    console.log('flag check', hasVotedFlag);
-
     if (votingStatusMsg && votingSection){
       votingStatusMsg.classList.add('hidden');
       votingSection.classList.remove('hidden');
@@ -635,7 +598,6 @@ async function loadActiveVoting() {
 
 // Function to load Voting History
 async function loadVotingHistory() {
-  console.log('load voting history called');
   const historyList = document.getElementById('votingHistoryList'); // You need to add this id to <ul>
 
   if (historyList){
@@ -667,7 +629,6 @@ async function loadVotingHistory() {
 }
 
 async function loadLiveVotingStats(positionName) {
-  console.log('live voting stats called');
 
   if (!positionName || positionName === 'null') {
     console.warn('No position name passed to live stats');
@@ -727,20 +688,13 @@ document.addEventListener('DOMContentLoaded', () => {
     monitorVotingStatus();
     loadLiveVotingStats(positionForVote);
   }, 3000); // check every 8 seconds (adjust as needed)
-
-  // clearInterval();
-  // setInterval(() => {
-  //   loadActiveVoting(); // Run repeatedly every X seconds
-  // }, 10000); // Example: every 10 seconds
-
-  // setInterval(loadActiveVoting, 10000);
 });
 
 // Event listener to allow voting
 if (voteForm && submitVoteBtn){
   voteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    submitVoteForm(positionForVote, hasVotedFlag);
+    submitVoteForm(positionForVote);
   });
 }
 
