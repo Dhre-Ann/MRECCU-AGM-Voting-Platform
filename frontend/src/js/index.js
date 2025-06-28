@@ -531,6 +531,10 @@ async function submitVoteForm(activePosition, hasVoted){
 }
 
 async function monitorVotingStatus(positionName) {
+  if (!positionName || positionName === 'Select'){
+    console.warn('no position detected');
+    return;
+  }
   try {
     const res = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(positionName)}`);
     const data = await res.json();
