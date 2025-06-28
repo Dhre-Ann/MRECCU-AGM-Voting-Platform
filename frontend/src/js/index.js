@@ -128,6 +128,8 @@ let previousVotingActive = null;
 
 // Toggle voting start and stop
 async function updateToggleVotingButtonState() {
+  if (!positionSelect) return;
+
   const selectedPosition = positionSelect.value;
 
   if (!selectedPosition || selectedPosition === 'Select') return;
@@ -521,7 +523,10 @@ async function submitVoteForm(activePosition, hasVoted){
       if (response.status === 403) {
       alert(data.message || 'You have already voted for this position.');
       return;
-    }
+      } else if (response.status === 400){
+        alert(data.message || 'Please select the right number of candidates');
+        return;
+      }
       alert(`Error: ${data.message}`);
     }
   } catch (err) {

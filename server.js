@@ -295,7 +295,7 @@ app.post('/voting/get-active', async (req, res) => {
    if (!voterId) {
     return res.status(400).json({ success: false, message: 'Missing voter ID' });
   }
-  
+
   try {
     // Get the currently active position
     const positionResult = await pool.query(`
@@ -371,8 +371,11 @@ app.post('/voting/vote', async (req, res) => {
 
     const positionData = posResult.rows[0];
 
-    if (selectedCandidates.length > positionData.num_votes_allowed) {
-      return res.status(400).json({ success: false, message: `You can only vote for up to ${positionData.num_votes_allowed} candidate(s)` });
+    if (selectedCandidates.length !== positionData.num_votes_allowed) {
+      return res.status(400).json({
+        success: false,
+        message: `You must vote for exactly ${positionData.num_votes_allowed} candidate(s).`,
+      });
     }
 
     // ✅ Increment vote_count for each selected candidate
