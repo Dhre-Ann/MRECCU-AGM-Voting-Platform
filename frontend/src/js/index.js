@@ -722,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setInterval(() => {
     monitorVotingStatus();
-    loadLiveVotingStats(positionName);
+    loadLiveVotingStats(positionForVote);
   }, 3000); // check every 8 seconds (adjust as needed)
 
   // clearInterval();
