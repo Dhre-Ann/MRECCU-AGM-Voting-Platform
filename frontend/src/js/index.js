@@ -530,30 +530,55 @@ async function submitVoteForm(activePosition, hasVoted){
   }
 }
 
-async function monitorVotingStatus(positionName) {
-  if (!positionName || positionName === 'Select'){
-    console.warn('no position detected');
-    return;
-  }
+// async function monitorVotingStatus(positionName) {
+//   if (!positionName || positionName === 'Select'){
+//     console.warn('no position detected');
+//     return;
+//   }
+//   try {
+//     const res = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(positionName)}`);
+//     const data = await res.json();
+
+//     if (!data.success) return;
+
+//     const currentVotingActive = data.voting_active;
+
+//     if (previousVotingActive === null) {
+//       previousVotingActive = currentVotingActive; // Set initial state
+//     } else if (currentVotingActive !== previousVotingActive) {
+//       console.log('Voting status changed. Reloading voting interface...');
+//       previousVotingActive = currentVotingActive;
+//       await loadActiveVoting();
+//     }
+//   } catch (err) {
+//     console.error('Error checking voting status:', err);
+//   }
+// }
+
+async function monitorVotingStatus() {
   try {
-    const res = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(positionName)}`);
+    const res = await fetch(`${API_BASE_URL}/voting/get-active`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterId }), // assumes you have voterId globally
+    });
+
     const data = await res.json();
-
-    if (!data.success) return;
-
-    const currentVotingActive = data.voting_active;
+    const currentVotingActive = !!data.position; // true if a position is active
 
     if (previousVotingActive === null) {
-      previousVotingActive = currentVotingActive; // Set initial state
-    } else if (currentVotingActive !== previousVotingActive) {
-      console.log('Voting status changed. Reloading voting interface...');
       previousVotingActive = currentVotingActive;
-      await loadActiveVoting();
+    } else if (currentVotingActive !== previousVotingActive) {
+      console.log('Voting status changed. Reloading...');
+      previousVotingActive = currentVotingActive;
+      await loadActiveVoting(); // this will repopulate based on actual active position
     }
+
   } catch (err) {
-    console.error('Error checking voting status:', err);
+    console.error('Error monitoring voting status:', err);
   }
 }
+
 
 
 
@@ -713,6 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadVotingHistory();
   loadLiveVotingStats(positionForVote); 
   updateToggleVotingButtonState(); 
+  monitorVotingStatus(positionForVote);
 
   setInterval(() => {
     monitorVotingStatus(positionForVote);
