@@ -106,12 +106,32 @@
                 </div>
             </div>
 
-            <div class="bg-white p-3 rounded-md shadow">
-                <button id="" type="button"
-                        class="text-center bg-accent4 text-white font-semibold py-2 px-4 rounded-md hover:bg-light3 transition">
-                    Pool Results
-                </button>
-            </div>
+            <!-- Voting Activity Section (Add this inside it) -->
+<div id="pollResultsSection" class="text-center mt-2 mx-auto space-y-2">
+  <button id="openPollModalBtn" class="bg-accent4 text-white px-4 py-2 rounded hover:bg-light3 transition">
+    Add Paper-Based Votes
+  </button>
+</div>
+
+<!-- Modal for Manual Vote Entry -->
+<div id="pollResultsModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6 space-y-4">
+    <h2 class="text-xl font-semibold text-primary text-center">Add Manual Votes</h2>
+
+    <form id="manualVotesForm" class="space-y-3">
+      <!-- Dynamically populated input fields go here -->
+    </form>
+
+    <div class="flex justify-end space-x-2 pt-2">
+      <button id="cancelPollBtn" type="button"
+        class="px-4 py-2 bg-accent2 text-white rounded-md hover:bg-accent3 transition">Cancel</button>
+      <button id="submitPollBtn" type="button"
+        class="px-4 py-2 bg-accent4 text-white rounded-md hover:bg-light3 transition">Submit</button>
+    </div>
+  </div>
+</div>
+
+
 
         </aside>
     </div>

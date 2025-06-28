@@ -602,13 +602,17 @@ async function loadVotingHistory() {
   const historyList = document.getElementById('votingHistoryList');
 
   if (historyList) {
-    historyList.innerHTML = ''; // Clear previous
+    historyList.innerHTML = '';
 
     try {
       const res = await fetch(`${API_BASE_URL}/voting/history`);
       const data = await res.json();
 
       if (data.success && data.history.length > 0) {
+        // ✅ Check if ALL positions are completed
+        const allCompleted = data.history.length === data.totalPositionsCount;
+        console.log("All positions completed?", allCompleted);
+
         data.history.forEach(item => {
           const li = document.createElement('li');
           li.className = 'bg-white p-3 rounded-md shadow space-y-2';
@@ -625,9 +629,8 @@ async function loadVotingHistory() {
             <strong class="text-lg">${item.name}</strong><br/>
             <div class="mt-2 space-y-1">${candidateList}</div>
           `;
-
           historyList.appendChild(li);
-        });
+        });        
       } else {
         historyList.innerHTML = '<li class="text-center text-accent2 italic">No completed voting sessions yet.</li>';
       }
@@ -640,10 +643,10 @@ async function loadVotingHistory() {
 }
 
 
+
 async function loadLiveVotingStats(positionName) {
 
   if (!positionName || positionName === 'null') {
-    console.warn('No position name passed to live stats');
     return;
   }
 
@@ -709,6 +712,116 @@ if (voteForm && submitVoteBtn){
     submitVoteForm(positionForVote);
   });
 }
+
+
+// ====================================== ADDING MANUAL VOTES ======================================
+
+const openPollModalBtn = document.getElementById('openPollModalBtn');
+const pollResultsModal = document.getElementById('pollResultsModal');
+const manualVotesForm = document.getElementById('manualVotesForm');
+const cancelPollBtn = document.getElementById('cancelPollBtn');
+const submitPollBtn = document.getElementById('submitPollBtn');
+
+let lastCompletedPosition = null;
+
+async function loadCompletedPositionForPolling() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/voting/history`);
+    const data = await res.json();
+
+    if (!data.success || !Array.isArray(data.history)) return;
+
+    manualVotesForm.innerHTML = ''; // Clear existing form
+
+data.history.forEach(pos => {
+  if (pos.voting_complete) {
+    const section = document.createElement('div');
+    section.className = 'mb-4';
+
+    const title = document.createElement('h3');
+    title.className = 'font-bold text-primary text-lg mb-2';
+    title.textContent = pos.name;
+    section.appendChild(title);
+
+    pos.candidates.forEach(candidate => {
+      const div = document.createElement('div');
+      div.className = 'flex justify-between items-center space-x-2';
+
+      div.innerHTML = `
+        <label class="flex-1 text-primary">${candidate.name}</label>
+        <input type="number"
+               name="manualVote_${pos.name}_${candidate.name}"
+               min="0" value="0"
+               class="w-20 p-1 border border-gray-300 rounded"
+               ${pos.paper_results_added ? 'disabled' : ''} />
+      `;
+      section.appendChild(div);
+    });
+
+    manualVotesForm.appendChild(section);
+  }
+});
+
+
+    pollResultsModal.classList.remove('hidden');
+
+  } catch (err) {
+    console.error('Error loading polling form:', err);
+    alert('Failed to load polling form.');
+  }
+}
+
+
+
+
+// Button actions
+openPollModalBtn?.addEventListener('click', loadCompletedPositionForPolling);
+cancelPollBtn?.addEventListener('click', () => pollResultsModal.classList.add('hidden'));
+
+submitPollBtn?.addEventListener('click', async (e) => {
+  e.preventDefault();
+
+  const inputs = manualVotesForm.querySelectorAll('input[type="number"]');
+  const resultsByPosition = {}; // { position_name: [{ candidateName, count }] }
+
+  inputs.forEach(input => {
+    const [_, positionName, candidateName] = input.name.split('_');
+    const count = parseInt(input.value) || 0;
+
+    if (count > 0) {
+      if (!resultsByPosition[positionName]) {
+        resultsByPosition[positionName] = [];
+      }
+      resultsByPosition[positionName].push({ candidateName, count });
+    }
+  });
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/voting/poll-results`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resultsByPosition }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert('Paper results added successfully!');
+      pollResultsModal.classList.add('hidden');
+
+      loadVotingHistory();
+
+    } else {
+      alert(`Error: ${data.message}`);
+    }
+
+  } catch (err) {
+    console.error('Error submitting poll results:', err);
+    alert('An error occurred.');
+  }
+});
+
+
+
 
 
 

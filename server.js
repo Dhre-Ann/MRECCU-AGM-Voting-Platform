@@ -401,19 +401,23 @@ app.post('/voting/vote', async (req, res) => {
 app.get('/voting/history', async (req, res) => {
   try {
     // Get all completed positions
-    const positionResult = await pool.query(`
-      SELECT id, name, voting_complete
+    const completedResult = await pool.query(`
+      SELECT id, name, voting_complete, paper_results_added
       FROM positions
       WHERE voting_complete = true
       ORDER BY id
     `);
 
-    const positions = positionResult.rows;
+    const completedPositions = completedResult.rows;
 
-    // For each position, get its candidates
+    // Get total number of positions
+    const totalResult = await pool.query('SELECT COUNT(*) FROM positions');
+    const totalPositionsCount = parseInt(totalResult.rows[0].count, 10);
+
+    // For each completed position, get candidates
     const history = [];
 
-    for (const pos of positions) {
+    for (const pos of completedPositions) {
       const candidatesResult = await pool.query(
         'SELECT name, vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
         [pos.id]
@@ -422,17 +426,20 @@ app.get('/voting/history', async (req, res) => {
       history.push({
         name: pos.name,
         voting_complete: pos.voting_complete,
+        paper_results_added: pos.paper_results_added,
         candidates: candidatesResult.rows,
       });
+
     }
 
-    res.json({ success: true, history });
+    res.json({ success: true, history, totalPositionsCount });
 
   } catch (err) {
     console.error('Error fetching voting history:', err);
     res.status(500).json({ success: false, message: 'Error fetching voting history.' });
   }
 });
+
 
 
 // Endpoint to get live updates during voting
@@ -477,6 +484,68 @@ app.get('/voting/live-stats', async (req, res) => {
     res.status(500).json({ success: false, message: 'Database error' });
   }
 });
+
+// app.post('/voting/poll-results', async (req, res) => {
+//   const { results } = req.body;
+
+//   if (!Array.isArray(results)) {
+//     return res.status(400).json({ success: false, message: 'Results are required.' });
+//   }
+
+//   try {
+
+
+//     for (const entry of results) {
+//       const { candidateId, count } = entry;
+//       await pool.query(
+//         'UPDATE candidates SET vote_count = vote_count + $1 WHERE id = $2',
+//         [count, candidateId]
+//       );
+//     }
+
+//     res.json({ success: true, message: 'Manual results added successfully.' });
+
+//   } catch (err) {
+//     console.error('Error pooling manual votes:', err);
+//     res.status(500).json({ success: false, message: 'Server error while pooling votes.' });
+//   }
+// });
+
+app.post('/voting/poll-results', async (req, res) => {
+  const { resultsByPosition } = req.body;
+
+  if (!resultsByPosition || typeof resultsByPosition !== 'object') {
+    return res.status(400).json({ success: false, message: 'Invalid results data.' });
+  }
+
+  try {
+    for (const positionName in resultsByPosition) {
+    const positionResult = await pool.query('SELECT id FROM positions WHERE name = $1', [positionName]);
+    const positionId = positionResult.rows[0].id;
+
+    for (const entry of resultsByPosition[positionName]) {
+      await pool.query(
+        'UPDATE candidates SET vote_count = vote_count + $1 WHERE name = $2 AND position_id = $3',
+        [entry.count, entry.candidateName, positionId]
+      );
+    }
+
+    // ✅ mark as paper results added
+    await pool.query(
+      'UPDATE positions SET paper_results_added = TRUE WHERE id = $1',
+      [positionId]
+    );
+  }
+
+
+    res.json({ success: true, message: 'Manual results added successfully.' });
+
+  } catch (err) {
+    console.error('Error pooling manual votes:', err);
+    res.status(500).json({ success: false, message: 'Server error while pooling votes.' });
+  }
+});
+
 
 
 
