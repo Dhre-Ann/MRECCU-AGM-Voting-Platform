@@ -123,6 +123,7 @@ const candidateNameInput = document.getElementById('candidateName');
 const candidateOccupationInput = document.getElementById('candidateOccupation');
 const addCandidateBtn = document.getElementById('addCandidateBtn');
 const candidateList = document.getElementById('candidateList');
+let previousVotingActive = null;
 
 
 // Toggle voting start and stop
@@ -529,6 +530,35 @@ async function submitVoteForm(activePosition, hasVoted){
   }
 }
 
+async function monitorVotingStatus(positionName) {
+  console.log('monitoring voting status for position:', positionName);
+  if (!positionName){
+    console.warn('no position available for monitoring');
+      return;
+    }
+  try {
+    const res = await fetch(`${API_BASE_URL}/voting/status?position_name=${encodeURIComponent(positionName)}`);
+    const data = await res.json();
+
+    if (!data.success) return;
+
+    const currentVotingActive = data.voting_active;
+    console.log('voting active for: ', currentVotingActive);
+    console.log('prev active: ', previousVotingActive);
+
+    // Only trigger if voting status changed
+    if (previousVotingActive !== null && currentVotingActive !== previousVotingActive) {
+      console.log('Voting status changed. Reloading voting interface...');
+      await loadActiveVoting(); // or call location.reload() if necessary
+    }
+
+    previousVotingActive = currentVotingActive;
+  } catch (err) {
+    console.error('Error checking voting status:', err);
+  }
+}
+
+
 async function loadActiveVoting() {
   console.log("run voting acting");
   try {
@@ -685,6 +715,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadVotingHistory();
   loadLiveVotingStats(positionForVote); 
   updateToggleVotingButtonState(); 
+
+  setInterval(() => {
+    monitorVotingStatus(positionForVote);
+  }, 3000); // check every 8 seconds (adjust as needed)
 
   // clearInterval();
   // setInterval(() => {
