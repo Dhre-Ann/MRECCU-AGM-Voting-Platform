@@ -598,9 +598,10 @@ async function loadActiveVoting() {
 
 // Function to load Voting History
 async function loadVotingHistory() {
-  const historyList = document.getElementById('votingHistoryList'); // You need to add this id to <ul>
+  console.log('load voting history called');
+  const historyList = document.getElementById('votingHistoryList');
 
-  if (historyList){
+  if (historyList) {
     historyList.innerHTML = ''; // Clear previous
 
     try {
@@ -610,23 +611,34 @@ async function loadVotingHistory() {
       if (data.success && data.history.length > 0) {
         data.history.forEach(item => {
           const li = document.createElement('li');
-          li.className = 'bg-white p-3 rounded-md shadow';
+          li.className = 'bg-white p-3 rounded-md shadow space-y-2';
+
+          // Build candidate vote list
+          const candidateList = item.candidates.map(c => `
+            <div class="flex justify-between">
+              <span>${c.name}</span>
+              <span class="font-semibold text-primary">${c.vote_count} vote(s)</span>
+            </div>
+          `).join('');
+
           li.innerHTML = `
-            <strong>${item.name}</strong><br/>
-            Status: ${item.voting_complete ? 'Closed' : 'Open'}
+            <strong class="text-lg">${item.name}</strong><br/>
+            <div class="mt-2 space-y-1">${candidateList}</div>
           `;
+
           historyList.appendChild(li);
         });
       } else {
-        historyList.innerHTML = '<li class="text-center text-accent2 italic"> No completed voting sessions yet.</li>';
+        historyList.innerHTML = '<li class="text-center text-accent2 italic">No completed voting sessions yet.</li>';
       }
-    
+
     } catch (err) {
       console.error(err);
       historyList.innerHTML = '<li>Error loading voting history.</li>';
     }
   }
 }
+
 
 async function loadLiveVotingStats(positionName) {
 

@@ -400,20 +400,40 @@ app.post('/voting/vote', async (req, res) => {
 // Endpoint to get the voting history
 app.get('/voting/history', async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT p.id, p.name, p.voting_complete, COALESCE(SUM(c.vote_count), 0) AS votes_cast
-      FROM positions p
-      LEFT JOIN candidates c ON p.id = c.position_id
-      WHERE p.voting_complete = true
-      GROUP BY p.id, p.name, p.voting_complete
-      ORDER BY p.id
+    // Get all completed positions
+    const positionResult = await pool.query(`
+      SELECT id, name, voting_complete
+      FROM positions
+      WHERE voting_complete = true
+      ORDER BY id
     `);
-    res.json({ success: true, history: result.rows });
+
+    const positions = positionResult.rows;
+
+    // For each position, get its candidates
+    const history = [];
+
+    for (const pos of positions) {
+      const candidatesResult = await pool.query(
+        'SELECT name, vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
+        [pos.id]
+      );
+
+      history.push({
+        name: pos.name,
+        voting_complete: pos.voting_complete,
+        candidates: candidatesResult.rows,
+      });
+    }
+
+    res.json({ success: true, history });
+
   } catch (err) {
     console.error('Error fetching voting history:', err);
     res.status(500).json({ success: false, message: 'Error fetching voting history.' });
   }
 });
+
 
 // Endpoint to get live updates during voting
 app.get('/voting/live-stats', async (req, res) => {
