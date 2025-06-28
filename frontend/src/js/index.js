@@ -532,7 +532,7 @@ async function submitVoteForm(activePosition, hasVoted){
 
 async function monitorVotingStatus(positionName) {
   console.log('monitoring voting status for position:', positionName);
-  if (!positionName){
+  if (!positionName || positionName === 'Select'){
     console.warn('no position available for monitoring');
       return;
     }
@@ -717,6 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateToggleVotingButtonState(); 
 
   setInterval(() => {
+    loadActiveVoting();
     monitorVotingStatus(positionForVote);
   }, 3000); // check every 8 seconds (adjust as needed)
 
