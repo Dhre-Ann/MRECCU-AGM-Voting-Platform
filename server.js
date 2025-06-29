@@ -6,6 +6,11 @@ const app = express();
 const port = process.env.PORT || 3000;
 const cors = require('cors');
 
+const multer = require('multer');
+const csv = require('csv-parse');
+const upload = multer({ dest: 'uploads/' });
+const fs = require('fs');
+
 const { Pool } = require('pg');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -36,7 +41,11 @@ app.post('/verify-voter', async (req, res) => {
 
     if (result.rows.length > 0) {
       const voterId = result.rows[0].id;
-      return res.status(200).json({ success: true, voterId }); // ✅ Returning voterId here
+
+      // ✅ Detect admin credentials
+      const isAdmin = phone_number === '222-1111' && account_number === '22221';
+
+      return res.status(200).json({ success: true, voterId, isAdmin });
     } else {
       return res.status(401).json({ success: false, message: 'No matching voter found' });
     }
@@ -45,6 +54,7 @@ app.post('/verify-voter', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Database error' });
   }
 });
+
 
 
 // =========================== ENDPOINTS FOR ACTIVE VOTING CONFIG ===========================
@@ -485,32 +495,6 @@ app.get('/voting/live-stats', async (req, res) => {
   }
 });
 
-// app.post('/voting/poll-results', async (req, res) => {
-//   const { results } = req.body;
-
-//   if (!Array.isArray(results)) {
-//     return res.status(400).json({ success: false, message: 'Results are required.' });
-//   }
-
-//   try {
-
-
-//     for (const entry of results) {
-//       const { candidateId, count } = entry;
-//       await pool.query(
-//         'UPDATE candidates SET vote_count = vote_count + $1 WHERE id = $2',
-//         [count, candidateId]
-//       );
-//     }
-
-//     res.json({ success: true, message: 'Manual results added successfully.' });
-
-//   } catch (err) {
-//     console.error('Error pooling manual votes:', err);
-//     res.status(500).json({ success: false, message: 'Server error while pooling votes.' });
-//   }
-// });
-
 app.post('/voting/poll-results', async (req, res) => {
   const { resultsByPosition } = req.body;
 
@@ -536,8 +520,6 @@ app.post('/voting/poll-results', async (req, res) => {
       [positionId]
     );
   }
-
-
     res.json({ success: true, message: 'Manual results added successfully.' });
 
   } catch (err) {
@@ -549,31 +531,85 @@ app.post('/voting/poll-results', async (req, res) => {
 
 
 
-
-
-
-
-
-// POST endpoint to add voter - WILL BE NEEDED LATER FOR ADMIN
-// app.post('/add-voter', async (req, res) => {
-//   const { phone_number, account_number } = req.body;
-
-//   if (!phone_number || !account_number) {
-//     return res.status(400).json({ success: false, error: 'Missing phone number or account number' });
+// Endpoint to upload CSV file with voters
+// app.post('/upload-csv', upload.single('csv'), async (req, res) => {
+//   if (!req.file) {
+//     return res.status(400).json({ success: false, message: 'No CSV file uploaded.' });
 //   }
 
-//   try {
-//     const result = await pool.query(
-//       'INSERT INTO voters (phone_number, account_number) VALUES ($1, $2) RETURNING *',
-//       [phone_number, account_number]
-//     );
+//   const results = [];
 
-//     res.json({ success: true, voter: result.rows[0] });
-//   } catch (error) {
-//     console.error('Error inserting voter:', error);
-//     res.status(500).json({ success: false, error: 'Database error' });
-//   }
+//   fs.createReadStream(req.file.path)
+//     .pipe(csv.parse({ columns: true, trim: true }))
+//     .on('data', (row) => {
+//       if (row.phone_number && row.account_number) {
+//         console.log('phone: ', row.phone_number);
+//         console.log('acc: ', row.account_number);
+//         results.push([row.phone_number, row.account_number]);
+//       }
+//     })
+//     .on('end', async () => {
+//       try {
+//         for (const [phone, account] of results) {
+//           await pool.query(
+//             'INSERT INTO voters (phone_number, account_number) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+//             [phone, account]
+//           );
+//         }
+
+//         fs.unlinkSync(req.file.path); // delete file after processing
+
+//         res.json({ success: true, inserted: results.length });
+//       } catch (err) {
+//         console.error('Error inserting CSV data:', err);
+//         res.status(500).json({ success: false, message: 'Error inserting data into database.' });
+//       }
+//     })
+//     .on('error', (err) => {
+//       console.error('CSV parsing error:', err);
+//       res.status(500).json({ success: false, message: 'Error parsing CSV file.' });
+//     });
 // });
+const parseCSV = (filePath) => {
+  return new Promise((resolve, reject) => {
+    const results = [];
+
+    fs.createReadStream(filePath)
+      .pipe(csv.parse({ columns: true, trim: true }))
+      .on('data', (row) => {
+        if (row.phone_number && row.account_number) {
+          results.push([row.phone_number, row.account_number]);
+        }
+      })
+      .on('end', () => resolve(results))
+      .on('error', (err) => reject(err));
+  });
+};
+
+app.post('/upload-csv', upload.single('csv'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No CSV file uploaded.' });
+  }
+
+  try {
+    const results = await parseCSV(req.file.path);
+
+    for (const [phone, account] of results) {
+      await pool.query(
+        'INSERT INTO voters (phone_number, account_number) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [phone, account]
+      );
+    }
+
+    fs.unlinkSync(req.file.path); // clean up
+
+    res.json({ success: true, inserted: results.length });
+  } catch (err) {
+    console.error('Error processing CSV:', err);
+    res.status(500).json({ success: false, message: 'Error processing CSV.' });
+  }
+});
+
 
 // Start the server
 app.listen(port, () => {

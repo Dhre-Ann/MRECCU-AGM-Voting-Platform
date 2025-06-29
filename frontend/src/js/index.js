@@ -6,6 +6,15 @@ const API_BASE_URL =
     ? 'http://localhost:3000'
     : 'https://mreccu-agm-voting-platform.onrender.com';
 
+
+// Protect admin page
+if (window.location.pathname.includes('admin.html')) {
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  if (!isAdmin) {
+    window.location.href = './dashboard.html'; // Redirect non-admins
+  }
+}
+
 // Variables
 const loginRedirect = document.getElementById("login-redirect-btn");
 const phoneInput = document.getElementById('phoneNumber');
@@ -45,15 +54,13 @@ if (accountInput) {
 }
 
 // verify user
-if (voterLoginForm){
+if (voterLoginForm) {
   voterLoginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const phone_number = document.getElementById('phoneNumber').value;
     const account_number = document.getElementById('accountNumber').value;
-    console.log("phone: ", phone_number);
-    
-    // Verify account number not greater than 5 digits
+
     if (!/^\d{5}$/.test(account_number)) {
       alert("Account number must be exactly 5 digits.");
       return;
@@ -68,16 +75,26 @@ if (voterLoginForm){
 
       const data = await response.json();
       if (data.success) {
-        localStorage.setItem('voterId', data.voterId); // store locally
-        window.location.href = './dashboard.html'; // go to next page
+        localStorage.setItem('voterId', data.voterId);
+        localStorage.setItem('isAdmin', data.isAdmin); // ✅ Store admin flag
+
+        // ✅ Redirect based on isAdmin
+        if (data.isAdmin) {
+          window.location.href = './admin.html';
+        } else {
+          window.location.href = './dashboard.html';
+        }
+
       } else {
         alert(data.message || 'Invalid login credentials.');
       }
-    } catch (error){
-      resultDiv.textContent = 'Error connecting to server';
+    } catch (error) {
+      console.error(error);
+      alert('Error connecting to server');
     }
   });
 }
+
 
 // ====================================== ADMIN DASH ======================================
 
@@ -668,8 +685,11 @@ async function loadLiveVotingStats(positionName) {
     
 
     // ✅ Show number of voters who have voted
-    document.getElementById('votesCount').textContent = data.votersWhoVoted;
-    document.getElementById('votesTotal').textContent = data.totalVoters;
+    if (document.getElementById('votesCount')){
+      document.getElementById('votesCount').textContent = data.votersWhoVoted;
+      document.getElementById('votesTotal').textContent = data.totalVoters;
+    }
+    
 
     // Update candidate votes breakdown
     const candidateVotes = document.getElementById('candidateVotes');
@@ -822,39 +842,44 @@ submitPollBtn?.addEventListener('click', async (e) => {
 
 
 
+// Upload CSV file with voters
+const uploadBtn = uploadCSVSection.querySelector('button');
+const fileInput = uploadCSVSection.querySelector('input[type="file"]');
 
+if (uploadBtn){
+  uploadBtn?.addEventListener('click', async (e) => {
+    e.preventDefault();
 
+    const fileInput = document.querySelector('#uploadCSVSection input[type="file"]');
+    const file = fileInput?.files[0];
 
+    if (!file) {
+      alert('Please select a CSV file to upload.');
+      return;
+    }
 
+    const formData = new FormData();
+    formData.append('csv', file);
 
-// add voter - STANDALONE TEST - WILL BE NEEDED LATER FOR ADMIN
-// document.addEventListener('DOMContentLoaded', () => {
-//     const form = document.getElementById('voterForm');
-//     const resultDiv = document.getElementById('result');
-  
-//     if (form)
-//       form.addEventListener('submit', async (e) => {
-//         e.preventDefault();
-    
-//         const phone_number = document.getElementById('phoneNumber').value;
-//         const account_number = document.getElementById('accountNumber').value;
-    
-//         try {
-//           const response = await fetch('${API_BASE_URL}/add-voter', {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' },
-//             body: JSON.stringify({ phone_number, account_number }),
-//           });
-    
-//           const data = await response.json();
-    
-//           if (data.success) {
-//             resultDiv.textContent = `Voter added with ID ${data.voter.id}`;
-//           } else {
-//             resultDiv.textContent = 'Failed to add voter: ' + (data.error || 'Unknown error');
-//           }
-//         } catch (error) {
-//           resultDiv.textContent = 'Error connecting to server';
-//         }
-//       });
-//   });
+    try {
+      const res = await fetch(`${API_BASE_URL}/upload-csv`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      console.log(res.json);
+
+      if (res.ok && data.success) {
+        alert(`CSV uploaded successfully. ${data.inserted} voters added.`);
+        fileInput.value = ''; // Reset input
+      } else {
+        console.error('Upload failed:', data);
+        alert(data.message || 'An error occurred while uploading CSV file.');
+      }
+    } catch (err) {
+      console.error('Network error:', err);
+      alert('A network error occurred while uploading CSV file.');
+    }
+  });
+}
