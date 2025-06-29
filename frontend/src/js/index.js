@@ -61,10 +61,10 @@ if (voterLoginForm) {
     const phone_number = document.getElementById('phoneNumber').value;
     const account_number = document.getElementById('accountNumber').value;
 
-    if (!/^\d{5}$/.test(account_number)) {
-      alert("Account number must be exactly 5 digits.");
-      return;
-    }
+    // if (!/^\d{5}$/.test(account_number)) {
+    //   alert("Account number must be exactly 5 digits.");
+    //   return;
+    // }
 
     try {
       const response = await fetch(`${API_BASE_URL}/verify-voter`, {
