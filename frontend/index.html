@@ -3,71 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vote MRECCU</title>
+  <title>MRECCU AGM Voting</title>
   <link href="./dist/output.css" rel="stylesheet">
 </head>
 
-<body class="w-full bg-primary text-secondary font-sans">
+<body class="min-h-screen bg-primary font-sans text-secondary antialiased">
 
-  <!-- Header -->
-  <header class="w-full bg-primary text-secondary py-6 shadow-lg">
-    <div class="w-fit h-fit text-sm px-4 py-2 mx-auto bg-accent3 rounded-2xl flex items-center justify-center">
-      <img src="./assets/mrccu-logo.png" alt="mreccu-logo"
-     class="w-24 sm:w-32 md:w-40 lg:w-48 xl:w-52 h-auto" />
+  <main class="relative flex min-h-screen flex-col overflow-hidden">
+    <!-- Full-bleed ballot atmosphere -->
+    <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+      <img
+        src="./assets/vote.png"
+        alt=""
+        class="h-full w-full object-cover object-center scale-105"
+      />
+      <div class="absolute inset-0 bg-gradient-to-b from-primary/90 via-primary/80 to-primary/95"></div>
     </div>
-    <div class="container mx-auto text-center">
-      <h2 class="text-md sm:text-3xl font-bold mt-2 italic">Mon Repos Eastern Co-operative Credit Union</h2>
-    </div>
-  </header>
 
-  <!-- Welcome Section -->
-<section class="relative py-16 px-4 text-center text-primary bg-accent3">
-  <img src="./assets/vote.png" alt="vote-image"
-       class="absolute inset-0 w-full h-full object-cover opacity-40 pointer-events-none" />
-
-  <div class="relative z-10 max-w-md mx-auto">
-    <h2 class="shadow-md shadow-light1 w-fit p-3 rounded-sm text-xl sm:text-3xl font-semibold mb-4 bg-secondary/80">
-      Annual General Meeting Voting Platform
-    </h2>
-  </div>
-</section>
-
-
-
-
-
-  <!-- Banner -->
-  <section class="bg-accent1 text-white py-6">
-      <div class="mx-auto text-center">
-        <p class="text-lg text-highlight font-semibold italic">Our People, Our Community, Our Credit Union</p>
+    <div class="relative z-10 flex flex-1 flex-col items-center justify-center px-5 py-16 text-center sm:px-6">
+      <div class="mb-10 flex w-fit items-center justify-center rounded-2xl bg-surface px-5 py-3 shadow-md ring-1 ring-white/10 sm:mb-12">
+        <img
+          src="./assets/mrccu-logo.png"
+          alt="MRECCU logo"
+          class="h-auto w-40 sm:w-48"
+        />
       </div>
-  </section>
 
+      <p class="text-caption font-semibold tracking-[0.18em] text-highlight uppercase">
+        Annual General Meeting
+      </p>
 
-  <!-- Main Content -->
-  <main class="py-12 bg-white text-primary min-h-[35vh] sm:min-h-[35vh] lg:min-h-[32vh]">
-  <div class="container mx-auto text-center">
-    <h3 class="text-lg sm:text-xl font-medium">
-      Voting will begin soon. Please stay tuned for further instructions.
-    </h3>
-    <!-- You can add buttons, login prompts, or timers here -->
-     <div class="p-6">
-      <button id="login-redirect-btn" class="bg-accent1 text-white px-4 py-2 rounded hover:bg-light3 transition-colors">
-        Login Here!
-      </button>
-     </div>
-     
+      <h1 class="mt-5 max-w-xl text-display font-bold tracking-tight text-white sm:mt-6 sm:text-4xl">
+        Mon Repos Eastern Co-operative Credit Union
+      </h1>
 
-  </div>
-</main>
+      <p class="mt-6 max-w-md text-ui leading-relaxed text-secondary/90 sm:mt-7 sm:text-body">
+        Cast your ballot securely on your phone. Sign in with your member phone and account number.
+      </p>
 
+      <div class="mt-10 w-full max-w-xs sm:mt-12">
+        <button
+          id="login-redirect-btn"
+          type="button"
+          class="flex min-h-[52px] w-full items-center justify-center rounded-xl bg-accent px-6 py-3 text-body font-semibold text-white shadow-lg transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-highlight/70 focus:ring-offset-2 focus:ring-offset-primary"
+        >
+          Sign in to Vote
+        </button>
+      </div>
 
-  <!-- Footer -->
-<footer class="mt-auto bg-primary text-white py-8 px-2 text-sm text-center">
-  <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
-</footer>
+      <p class="mt-8 text-caption italic leading-relaxed text-secondary/70 sm:mt-10">
+        Our People, Our Community, Our Credit Union
+      </p>
+    </div>
 
+    <footer class="relative z-10 px-4 py-5 text-center text-caption text-white/70">
+      <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
+    </footer>
+  </main>
+
+  <script src="./dist/bundle.js"></script>
 </body>
-<script src="./dist/bundle.js"></script>
-
 </html>
