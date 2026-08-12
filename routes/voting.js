@@ -1,10 +1,11 @@
 const express = require('express');
 const pool = require('../config/db');
+const requireAdmin = require('../config/requireAdmin');
 
 const router = express.Router();
 
 // Endpoint to start voting
-router.post('/start', async (req, res) => {
+router.post('/start', requireAdmin, async (req, res) => {
   const { position_name } = req.body;
 
   if (!position_name) {
@@ -77,7 +78,7 @@ router.post('/start', async (req, res) => {
 
 
 // Endpoint to stop voting
-router.post('/stop', async (req, res) => {
+router.post('/stop', requireAdmin, async (req, res) => {
   const { position_name } = req.body;
 
   if (!position_name) {
@@ -199,17 +200,6 @@ router.post('/vote', async (req, res) => {
   }
 
   try {
-    // ✅ Check that user has not voted yet
-    const voterResult = await pool.query('SELECT has_voted FROM voters WHERE id = $1', [voterId]);
-
-    if (voterResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Voter not found' });
-    }
-
-    if (voterResult.rows[0].has_voted) {
-      return res.status(403).json({ success: false, message: 'You have already voted for this position.' });
-    }
-
     // ✅ Check that voting is active for the position
     const posResult = await pool.query(
       'SELECT id, num_votes_allowed FROM positions WHERE name = $1 AND voting_active = true',
@@ -229,19 +219,40 @@ router.post('/vote', async (req, res) => {
       });
     }
 
-    // ✅ Increment vote_count for each selected candidate
-    for (const candidateId of selectedCandidates) {
-      await pool.query(
-        'UPDATE candidates SET vote_count = vote_count + 1 WHERE id = $1 AND position_id = $2',
-        [candidateId, positionData.id]
+    // Atomic claim of has_voted + vote_count increments in one transaction
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const claim = await client.query(
+        'UPDATE voters SET has_voted = TRUE WHERE id = $1 AND has_voted = FALSE RETURNING id',
+        [voterId]
       );
+
+      if (claim.rowCount === 0) {
+        await client.query('ROLLBACK');
+        const exists = await pool.query('SELECT id FROM voters WHERE id = $1', [voterId]);
+        if (exists.rows.length === 0) {
+          return res.status(404).json({ success: false, message: 'Voter not found' });
+        }
+        return res.status(403).json({ success: false, message: 'You have already voted for this position.' });
+      }
+
+      for (const candidateId of selectedCandidates) {
+        await client.query(
+          'UPDATE candidates SET vote_count = vote_count + 1 WHERE id = $1 AND position_id = $2',
+          [candidateId, positionData.id]
+        );
+      }
+
+      await client.query('COMMIT');
+      return res.json({ success: true, message: 'Your vote has been recorded' });
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
     }
-
-    // ✅ Set has_voted = true
-    await pool.query('UPDATE voters SET has_voted = TRUE WHERE id = $1', [voterId]);
-
-    return res.json({ success: true, message: 'Your vote has been recorded' });
-
   } catch (err) {
     console.error('Error submitting vote:', err);
     return res.status(500).json({ success: false, message: 'Error submitting vote' });
@@ -336,7 +347,7 @@ router.get('/live-stats', async (req, res) => {
   }
 });
 
-router.post('/poll-results', async (req, res) => {
+router.post('/poll-results', requireAdmin, async (req, res) => {
   const { resultsByPosition } = req.body;
 
   if (!resultsByPosition || typeof resultsByPosition !== 'object') {

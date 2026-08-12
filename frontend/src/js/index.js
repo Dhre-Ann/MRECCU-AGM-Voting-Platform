@@ -1,10 +1,22 @@
-// const API_BASE_URL = process.env.API_BASE_URL;
-const API_BASE_URL = 
-  window.location.hostname === 'localhost' || 
-  window.location.hostname === '127.0.0.1' || 
-  window.location.hostname.startsWith('192.168.')
-    ? 'http://localhost:3000'
-    : 'https://mreccu-agm-voting-platform.onrender.com';
+// Local/LAN: talk to Express on :3000. If the page itself is served by Express (:3000),
+// use same origin. Live Server (:5500) etc. must NOT use window.location.origin.
+const isLocalHost =
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.startsWith('192.168.');
+
+const API_BASE_URL = !isLocalHost
+  ? 'https://mreccu-agm-voting-platform.onrender.com'
+  : (window.location.port === '3000'
+      ? window.location.origin
+      : `${window.location.protocol}//${window.location.hostname}:3000`);
+
+function apiFetch(path, options = {}) {
+  return fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    credentials: 'include',
+  });
+}
 
 
 // Protect admin page
@@ -67,7 +79,7 @@ if (voterLoginForm) {
     // }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/verify-voter`, {
+      const response = await apiFetch('/verify-voter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone_number, account_number }),
@@ -174,7 +186,7 @@ if (toggleVotingBtn){
   try {
     if (toggleVotingBtn.textContent === 'Start Voting') {
       // Attempt to start voting
-      const response = await fetch(`${API_BASE_URL}/voting/start`, {
+      const response = await apiFetch('/voting/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ position_name: selectedPosition })
@@ -195,7 +207,7 @@ if (toggleVotingBtn){
 
     } else {
       // Stop voting
-      const response = await fetch(`${API_BASE_URL}/voting/stop`, {
+      const response = await apiFetch('/voting/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ position_name: selectedPosition })
@@ -238,7 +250,7 @@ if (addCandidateBtn){
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/add-candidate`, {
+    const response = await apiFetch('/add-candidate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ positionName, candidateName, candidateOccupation })
@@ -291,7 +303,7 @@ async function removeCandidate(candidateId, positionName) {
   if (!confirmed) return;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/remove-candidate/${candidateId}`, {
+    const response = await apiFetch(`/remove-candidate/${candidateId}`, {
       method: 'DELETE'
     });
     if (response.ok) {
@@ -389,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Send to server to save
         try {
-          const response = await fetch(`${API_BASE_URL}/update-votes`, {
+          const response = await apiFetch('/update-votes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -817,7 +829,7 @@ submitPollBtn?.addEventListener('click', async (e) => {
   });
 
   try {
-    const res = await fetch(`${API_BASE_URL}/voting/poll-results`, {
+    const res = await apiFetch('/voting/poll-results', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resultsByPosition }),
@@ -843,11 +855,11 @@ submitPollBtn?.addEventListener('click', async (e) => {
 
 
 // Upload CSV file with voters
-const uploadBtn = uploadCSVSection.querySelector('button');
-const fileInput = uploadCSVSection.querySelector('input[type="file"]');
+const uploadBtn = uploadCSVSection?.querySelector('button');
+const fileInput = uploadCSVSection?.querySelector('input[type="file"]');
 
 if (uploadBtn){
-  uploadBtn?.addEventListener('click', async (e) => {
+  uploadBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
     const fileInput = document.querySelector('#uploadCSVSection input[type="file"]');
@@ -862,7 +874,7 @@ if (uploadBtn){
     formData.append('csv', file);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/upload-csv`, {
+      const res = await apiFetch('/upload-csv', {
         method: 'POST',
         body: formData,
       });

@@ -2,12 +2,23 @@ const express = require('express');
 const multer = require('multer');
 const csv = require('csv-parse');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
+const requireAdmin = require('../config/requireAdmin');
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
 
-router.post('/verify-voter', async (req, res) => {
+const verifyVoterLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 40,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many login attempts. Please try again later.' },
+});
+
+router.post('/verify-voter', verifyVoterLimiter, async (req, res) => {
   const { phone_number, account_number } = req.body;
 
   if (!phone_number || !account_number) {
@@ -26,6 +37,15 @@ router.post('/verify-voter', async (req, res) => {
       // ✅ Detect admin credentials
       const isAdmin = phone_number === '222-1111' && account_number === '22221';
 
+      if (isAdmin) {
+        req.session.isAdmin = true;
+        req.session.voterId = voterId;
+      } else {
+        // Clear any prior admin session if a non-admin logs in on the same browser
+        delete req.session.isAdmin;
+        delete req.session.voterId;
+      }
+
       return res.status(200).json({ success: true, voterId, isAdmin });
     } else {
       return res.status(401).json({ success: false, message: 'No matching voter found' });
@@ -36,45 +56,6 @@ router.post('/verify-voter', async (req, res) => {
   }
 });
 
-// Endpoint to upload CSV file with voters
-// router.post('/upload-csv', upload.single('csv'), async (req, res) => {
-//   if (!req.file) {
-//     return res.status(400).json({ success: false, message: 'No CSV file uploaded.' });
-//   }
-
-//   const results = [];
-
-//   fs.createReadStream(req.file.path)
-//     .pipe(csv.parse({ columns: true, trim: true }))
-//     .on('data', (row) => {
-//       if (row.phone_number && row.account_number) {
-//         console.log('phone: ', row.phone_number);
-//         console.log('acc: ', row.account_number);
-//         results.push([row.phone_number, row.account_number]);
-//       }
-//     })
-//     .on('end', async () => {
-//       try {
-//         for (const [phone, account] of results) {
-//           await pool.query(
-//             'INSERT INTO voters (phone_number, account_number) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-//             [phone, account]
-//           );
-//         }
-
-//         fs.unlinkSync(req.file.path); // delete file after processing
-
-//         res.json({ success: true, inserted: results.length });
-//       } catch (err) {
-//         console.error('Error inserting CSV data:', err);
-//         res.status(500).json({ success: false, message: 'Error inserting data into database.' });
-//       }
-//     })
-//     .on('error', (err) => {
-//       console.error('CSV parsing error:', err);
-//       res.status(500).json({ success: false, message: 'Error parsing CSV file.' });
-//     });
-// });
 const parseCSV = (filePath) => {
   return new Promise((resolve, reject) => {
     const results = [];
@@ -91,7 +72,7 @@ const parseCSV = (filePath) => {
   });
 };
 
-router.post('/upload-csv', upload.single('csv'), async (req, res) => {
+router.post('/upload-csv', requireAdmin, upload.single('csv'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No CSV file uploaded.' });
   }

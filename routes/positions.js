@@ -1,5 +1,6 @@
 const express = require('express');
 const pool = require('../config/db');
+const requireAdmin = require('../config/requireAdmin');
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ router.get('/get-position-name', async (req, res) => {
 
 
 // Endpoint to pdate num_votes_allowed for a position
-router.post('/update-votes', async (req, res) => {
+router.post('/update-votes', requireAdmin, async (req, res) => {
   const { id, num_votes_allowed } = req.body;
 
   if (!id || !num_votes_allowed) {

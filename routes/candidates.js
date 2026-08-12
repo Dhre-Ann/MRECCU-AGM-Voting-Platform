@@ -1,10 +1,11 @@
 const express = require('express');
 const pool = require('../config/db');
+const requireAdmin = require('../config/requireAdmin');
 
 const router = express.Router();
 
 // POST /add-candidate
-router.post('/add-candidate', async (req, res) => {
+router.post('/add-candidate', requireAdmin, async (req, res) => {
   const { positionName, candidateName, candidateOccupation } = req.body;
 
   try {
@@ -45,7 +46,7 @@ router.get('/get-candidates', async (req, res) => {
 });
 
 // DELETE /remove-candidate/:id
-router.delete('/remove-candidate/:id', async (req, res) => {
+router.delete('/remove-candidate/:id', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM candidates WHERE id = $1', [req.params.id]);
     res.sendStatus(200);
