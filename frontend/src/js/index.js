@@ -46,6 +46,7 @@ if (loginRedirect) {
 if (phoneInput) {
   phoneInput.placeholder = "123-4567"; // Set placeholder
   phoneInput.addEventListener('input', (e) => {
+    clearLoginError();
     let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
     if (value.length > 3) {
       value = value.slice(0, 3) + '-' + value.slice(3, 7); // Format as 123-4567
@@ -59,24 +60,50 @@ if (accountInput) {
   accountInput.placeholder = "12345";
 
   accountInput.addEventListener('input', (e) => {
+    clearLoginError();
     let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
     value = value.slice(0, 5); // Limit to 5 digits
     e.target.value = value;
   });
 }
 
+function showLoginError(message) {
+  const loginError = document.getElementById('loginError');
+  if (loginError) {
+    loginError.textContent = message;
+    loginError.classList.remove('hidden');
+    return;
+  }
+  alert(message);
+}
+
+function clearLoginError() {
+  const loginError = document.getElementById('loginError');
+  if (loginError) {
+    loginError.textContent = '';
+    loginError.classList.add('hidden');
+  }
+}
+
 // verify user
 if (voterLoginForm) {
   voterLoginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearLoginError();
 
     const phone_number = document.getElementById('phoneNumber').value;
     const account_number = document.getElementById('accountNumber').value;
+    const loginSubmitBtn = document.getElementById('loginSubmitBtn');
 
     // if (!/^\d{5}$/.test(account_number)) {
     //   alert("Account number must be exactly 5 digits.");
     //   return;
     // }
+
+    if (loginSubmitBtn) {
+      loginSubmitBtn.disabled = true;
+      loginSubmitBtn.textContent = 'Signing in…';
+    }
 
     try {
       const response = await apiFetch('/verify-voter', {
@@ -98,11 +125,16 @@ if (voterLoginForm) {
         }
 
       } else {
-        alert(data.message || 'Invalid login credentials.');
+        showLoginError(data.message || 'Invalid phone number or account number. Please try again.');
       }
     } catch (error) {
       console.error(error);
-      alert('Error connecting to server');
+      showLoginError('Unable to reach the voting server. Check your connection and try again.');
+    } finally {
+      if (loginSubmitBtn) {
+        loginSubmitBtn.disabled = false;
+        loginSubmitBtn.textContent = 'Continue to Voting';
+      }
     }
   });
 }
@@ -280,14 +312,14 @@ async function loadCandidates(positionName) {
 
   data.candidates.forEach(candidate => {
     const li = document.createElement('li');
-    li.className = 'flex justify-between items-center bg-accent3/10 p-2 rounded';
+    li.className = 'flex items-center justify-between gap-3 rounded-lg border border-border bg-canvas/60 px-3 py-2.5';
     
     const span = document.createElement('span');
     span.textContent = `${candidate.name} (${candidate.occupation})`;
     
     const removeBtn = document.createElement('button');
     removeBtn.textContent = 'Remove';
-    removeBtn.className = 'text-red-600 hover:text-red-800';
+    removeBtn.className = 'shrink-0 text-caption font-semibold text-error hover:underline';
     removeBtn.addEventListener('click', () => removeCandidate(candidate.id, positionName));
     
     li.appendChild(span);
@@ -480,15 +512,57 @@ const submitVoteBtn = document.getElementById('submitVoteBtn');
 let positionForVote = null;
 let hasVotedFlag = false;
 
+function showVoteFeedback(message, type = 'error') {
+  const voteFeedback = document.getElementById('voteFeedback');
+  if (!voteFeedback) {
+    alert(message);
+    return;
+  }
+
+  voteFeedback.textContent = message;
+  voteFeedback.classList.remove('hidden', 'border-error/30', 'bg-error-soft', 'text-error', 'border-success/30', 'bg-success-soft', 'text-success');
+
+  if (type === 'success') {
+    voteFeedback.classList.add('border-success/30', 'bg-success-soft', 'text-success');
+  } else {
+    voteFeedback.classList.add('border-error/30', 'bg-error-soft', 'text-error');
+  }
+}
+
+function clearVoteFeedback() {
+  const voteFeedback = document.getElementById('voteFeedback');
+  if (voteFeedback) {
+    voteFeedback.textContent = '';
+    voteFeedback.classList.add('hidden');
+  }
+}
+
+function updateVotedUi(hasVoted) {
+  const votedBanner = document.getElementById('votedBanner');
+  if (votedBanner) {
+    votedBanner.classList.toggle('hidden', !hasVoted);
+  }
+  if (submitVoteBtn) {
+    submitVoteBtn.disabled = !!hasVoted;
+    submitVoteBtn.textContent = hasVoted ? 'Vote Recorded' : 'Cast Vote';
+  }
+}
+
 async function submitVoteForm(activePosition){
 
   const selected = Array.from(voteForm.querySelectorAll('input[type="checkbox"]:checked'))
     .map(cb => parseInt(cb.value));
 
+  clearVoteFeedback();
 
   if (selected.length === 0) {
-    alert('Please select at least one candidate to vote.');
+    showVoteFeedback('Please select at least one candidate to vote.');
     return;
+  }
+
+  if (submitVoteBtn) {
+    submitVoteBtn.disabled = true;
+    submitVoteBtn.textContent = 'Submitting…';
   }
 
   try {
@@ -505,10 +579,10 @@ async function submitVoteForm(activePosition){
     const data = await response.json();
 
     if (data.success) {
-      alert('Thank you! Your vote has been recorded.');
       hasVotedFlag = true;
+      updateVotedUi(true);
+      showVoteFeedback('Thank you! Your vote has been recorded.', 'success');
       if (voteForm){
-        voteForm.reset(); // optional: clears form
         voteForm.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
       }      
       await loadActiveVoting();
@@ -516,17 +590,30 @@ async function submitVoteForm(activePosition){
     } else {
       // add checks for status 403
       if (response.status === 403) {
-      alert(data.message || 'You have already voted for this position.');
+      showVoteFeedback(data.message || 'You have already voted for this position.');
+      updateVotedUi(true);
       return;
       } else if (response.status === 400){
-        alert(data.message || 'Please select the right number of candidates');
+        showVoteFeedback(data.message || 'Please select the right number of candidates');
+        if (submitVoteBtn) {
+          submitVoteBtn.disabled = false;
+          submitVoteBtn.textContent = 'Cast Vote';
+        }
         return;
       }
-      alert(`Error: ${data.message}`);
+      showVoteFeedback(data.message || 'Unable to record your vote.');
+      if (submitVoteBtn) {
+        submitVoteBtn.disabled = false;
+        submitVoteBtn.textContent = 'Cast Vote';
+      }
     }
   } catch (err) {
     console.error(err);
-    alert('An error occurred while submitting your vote.');
+    showVoteFeedback('An error occurred while submitting your vote.');
+    if (submitVoteBtn) {
+      submitVoteBtn.disabled = false;
+      submitVoteBtn.textContent = 'Cast Vote';
+    }
   }
 }
 
@@ -573,8 +660,18 @@ async function loadActiveVoting() {
       if (votingSection){
         votingSection.classList.add('hidden');
         votingStatusMsg.classList.remove('hidden');
-        votingStatusMsg.textContent = 'Voting will begin soon. Please stay tuned for further instructions.';
+        votingStatusMsg.innerHTML = `
+          <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-warning-soft text-warning">
+            <span class="text-title font-bold" aria-hidden="true">…</span>
+          </div>
+          <h2 class="text-title font-bold text-primary">No active race right now</h2>
+          <p class="mx-auto mt-2 max-w-sm text-ui text-ink-muted">
+            Voting will begin soon. Keep this page open — the ballot appears automatically when staff start a race.
+          </p>
+        `;
       }
+      updateVotedUi(false);
+      clearVoteFeedback();
       return;
     }
 
@@ -591,12 +688,12 @@ async function loadActiveVoting() {
 
     candidates.forEach((candidate) => {
       const label = document.createElement('label');
-      label.className = 'flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4';
+      label.className = 'flex min-h-[56px] items-start gap-3 rounded-xl border border-border bg-surface p-4 transition hover:border-accent hover:bg-accent-soft/40 has-[:checked]:border-accent has-[:checked]:bg-accent-soft cursor-pointer';
       label.innerHTML = `
-        <input type="checkbox" name="${position}" value="${candidate.id}" class="mt-1 accent-accent4" />
-        <div class="text-left pl-2">
+        <input type="checkbox" name="${position}" value="${candidate.id}" class="mt-1 h-5 w-5 shrink-0 accent-accent" />
+        <div class="text-left">
           <p class="font-semibold text-primary">${candidate.name}</p>
-          <p class="text-sm text-accent2 italic">${candidate.occupation}</p>
+          <p class="text-caption text-ink-muted">${candidate.occupation || ''}</p>
         </div>
       `;
       candidatesGrid.appendChild(label);
@@ -613,6 +710,10 @@ async function loadActiveVoting() {
         console.log('Checkbox', cb.value, 'disabled:', cb.disabled);
       });
   }
+    updateVotedUi(hasVotedFlag);
+    if (!hasVotedFlag) {
+      clearVoteFeedback();
+    }
     if (votingStatusMsg && votingSection){
       votingStatusMsg.classList.add('hidden');
       votingSection.classList.remove('hidden');
@@ -620,7 +721,16 @@ async function loadActiveVoting() {
   } catch (err) {
     console.error(err);
     if (votingStatusMsg){
-      votingStatusMsg.textContent = 'Error loading voting configuration.';
+      votingStatusMsg.innerHTML = `
+        <h2 class="text-title font-bold text-error">Unable to load ballot</h2>
+        <p class="mx-auto mt-2 max-w-sm text-ui text-ink-muted">
+          Check your connection and refresh the page. If the problem continues, notify a staff member.
+        </p>
+      `;
+      votingStatusMsg.classList.remove('hidden');
+    }
+    if (votingSection) {
+      votingSection.classList.add('hidden');
     }
   }
 }
@@ -644,24 +754,35 @@ async function loadVotingHistory() {
 
         data.history.forEach(item => {
           const li = document.createElement('li');
-          li.className = 'bg-white p-3 rounded-md shadow space-y-2';
+          li.className = 'rounded-xl border border-border bg-canvas/50 p-3 space-y-2';
 
-          // Build candidate vote list
-          const candidateList = item.candidates.map(c => `
-            <div class="flex justify-between">
-              <span>${c.name}</span>
-              <span class="font-semibold text-primary">${c.vote_count} vote(s)</span>
+          const maxVotes = Math.max(1, ...item.candidates.map(c => Number(c.vote_count) || 0));
+
+          // Build candidate vote list with simple bars
+          const candidateList = item.candidates.map(c => {
+            const count = Number(c.vote_count) || 0;
+            const barPercent = Math.round((count / maxVotes) * 100);
+            return `
+            <div class="space-y-1">
+              <div class="flex justify-between gap-2 text-caption">
+                <span>${c.name}</span>
+                <span class="font-semibold text-primary">${count}</span>
+              </div>
+              <div class="h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+                <div class="h-1.5 rounded-full bg-accent" style="width: ${barPercent}%"></div>
+              </div>
             </div>
-          `).join('');
+          `;
+          }).join('');
 
           li.innerHTML = `
-            <strong class="text-lg">${item.name}</strong><br/>
-            <div class="mt-2 space-y-1">${candidateList}</div>
+            <strong class="text-body text-primary">${item.name}</strong>
+            <div class="mt-2 space-y-2">${candidateList}</div>
           `;
           historyList.appendChild(li);
         });        
       } else {
-        historyList.innerHTML = '<li class="text-center text-accent2 italic">No completed voting sessions yet.</li>';
+        historyList.innerHTML = '<li class="text-center text-ui italic text-ink-muted">No completed voting sessions yet.</li>';
       }
 
     } catch (err) {
@@ -705,14 +826,25 @@ async function loadLiveVotingStats(positionName) {
 
     // Update candidate votes breakdown
     const candidateVotes = document.getElementById('candidateVotes');
+    if (!candidateVotes) return;
+
     candidateVotes.innerHTML = '';
 
+    const maxVotes = Math.max(1, ...data.candidates.map(c => Number(c.vote_count) || 0));
+
     data.candidates.forEach(candidate => {
+      const count = Number(candidate.vote_count) || 0;
+      const barPercent = Math.round((count / maxVotes) * 100);
       const div = document.createElement('div');
-      div.className = 'flex justify-between';
+      div.className = 'space-y-1';
       div.innerHTML = `
-        <span>${candidate.name}</span>
-        <span class="font-semibold text-primary">${candidate.vote_count} votes</span>
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="font-medium text-ink">${candidate.name}</span>
+          <span class="shrink-0 text-caption font-semibold text-primary">${count} vote${count === 1 ? '' : 's'}</span>
+        </div>
+        <div class="h-2.5 w-full overflow-hidden rounded-full bg-border/60">
+          <div class="h-2.5 rounded-full bg-primary transition-all duration-300" style="width: ${barPercent}%"></div>
+        </div>
       `;
       candidateVotes.appendChild(div);
     });

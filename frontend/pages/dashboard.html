@@ -1,133 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vote MRECCU</title>
-    <link href="../dist/output.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vote MRECCU</title>
+  <link href="../dist/output.css" rel="stylesheet">
 </head>
 
-<body class="w-full bg-primary text-secondary font-sans">
+<body class="flex min-h-screen flex-col bg-canvas font-sans text-ink antialiased">
 
-    <!-- Header -->
-    <header class="w-full bg-primary text-secondary py-6 shadow-lg">
-        <div class="w-fit h-fit text-sm px-4 py-2 mx-auto bg-accent3 rounded-2xl flex items-center justify-center">
-            <img src="../assets/mrccu-logo.png" alt="mreccu-logo" class="w-24 sm:w-32 md:w-40 lg:w-48 xl:w-52 h-auto" />
+  <header class="bg-primary text-secondary shadow-md">
+    <div class="mx-auto flex max-w-3xl flex-col items-center px-4 py-5 text-center">
+      <div class="mb-3 flex w-fit items-center justify-center rounded-2xl bg-surface px-4 py-2 shadow-sm">
+        <img
+          src="../assets/mrccu-logo.png"
+          alt="MRECCU logo"
+          class="h-auto w-28 sm:w-36"
+        />
+      </div>
+      <p class="text-caption font-medium tracking-wide text-highlight uppercase">Live AGM Voting</p>
+      <p class="mt-1 text-ui italic text-secondary/90">Our People, Our Community, Our Credit Union</p>
+    </div>
+  </header>
+
+  <main class="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
+
+    <!-- Idle / waiting state (also reused for load errors via JS textContent) -->
+    <div
+      id="votingStatusMsg"
+      class="rounded-2xl border border-border bg-surface px-5 py-10 text-center shadow-sm"
+    >
+      <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-warning-soft text-warning">
+        <span class="text-title font-bold" aria-hidden="true">…</span>
+      </div>
+      <h2 class="text-title font-bold text-primary">No active race right now</h2>
+      <p class="mx-auto mt-2 max-w-sm text-ui text-ink-muted">
+        Voting will begin soon. Keep this page open — the ballot appears automatically when staff start a race.
+      </p>
+    </div>
+
+    <!-- Active ballot -->
+    <section id="votingSection" class="hidden space-y-5">
+      <div class="rounded-2xl border border-border bg-surface px-5 py-5 shadow-sm">
+        <p class="text-caption font-semibold tracking-wide text-accent uppercase">Now open</p>
+        <h2 id="positionTitle" class="mt-1 text-title font-bold text-primary"></h2>
+        <p id="votesAllowedText" class="mt-2 text-ui text-ink-muted"></p>
+      </div>
+
+      <!-- Shown when this voter has already cast a ballot for the active race -->
+      <div
+        id="votedBanner"
+        role="status"
+        class="hidden rounded-2xl border border-success/25 bg-success-soft px-5 py-4 text-center"
+      >
+        <p class="text-body font-bold text-success">Your vote has been recorded</p>
+        <p class="mt-1 text-ui text-success/90">You cannot change this ballot. Please wait for the next race.</p>
+      </div>
+
+      <div
+        id="voteFeedback"
+        role="alert"
+        class="hidden rounded-lg border px-4 py-3 text-ui"
+      ></div>
+
+      <form id="voteForm" class="space-y-5">
+        <div id="candidatesGrid" class="grid gap-3 sm:grid-cols-2"></div>
+
+        <p id="voteLimitNote" class="text-center text-caption text-ink-muted"></p>
+
+        <div class="sticky bottom-4 pt-2">
+          <button
+            id="submitVoteBtn"
+            type="submit"
+            class="flex min-h-[52px] w-full items-center justify-center rounded-xl bg-accent px-6 py-3 text-body font-semibold text-white shadow-md transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-border-strong disabled:text-surface"
+          >
+            Cast Vote
+          </button>
         </div>
-        <div class="container mx-auto text-center">
-            <p class="text-lg pt-2 text-highlight font-semibold italic">Our People, Our Community, Our Credit Union</p>
-        </div>
-    </header>
+      </form>
+    </section>
 
+  </main>
 
-    <!-- Main Content -->
-    <main class="py-12 bg-white text-primary min-h-[35vh] sm:min-h-[35vh] lg:min-h-[32vh]">
-        <div class="container mx-auto text-center">
-            <!-- Default Message -->
-            <h3 id="votingStatusMsg" class="text-lg sm:text-xl font-medium">
-            Voting will begin soon. Please stay tuned for further instructions.
-            </h3>
-        </div>
+  <footer class="mt-auto bg-primary px-4 py-6 text-center text-caption text-white/90">
+    <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
+  </footer>
 
-        <section id="votingSection" class="hidden my-8 px-4 mx-auto text-center">
-            <h2 id="positionTitle" class="text-xl sm:text-2xl font-bold text-accent4 mb-2"></h2>
-            <p id="votesAllowedText" class="text-sm text-accent2 italic mb-4"></p>
-
-            <form id="voteForm" class="">
-                <div id="candidatesGrid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
-
-                <p class="mt-4 text-xs text-accent2 italic" id="voteLimitNote"></p>
-
-                <div class="mt-6 text-center">
-                    <button id="submitVoteBtn"
-                    class="bg-accent4 hover:bg-light3 hover:border-2 hover:shadow-accent2 hover:shadow-md text-white font-semibold py-2 px-6 rounded-md transition">
-                    Vote!
-                    </button>
-                </div>
-            </form>
-        </section>
-
-
-        <!-- Hardcode sampel -->
-        <!-- <section id="treasurer-section" class="my-8 px-4 mx-auto text-center">
-            <h2 class="text-xl sm:text-2xl font-bold text-accent4 mb-2">Treasurer</h2>
-            <p class="text-sm text-accent2 italic mb-4">Select <strong>3</strong> out of the 5 candidates below</p>
-
-            <form id="treasurer-vote-form" class="">
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    
-                    <label
-                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
-                        <input type="checkbox" name="treasurer" value="candidate1" class="mt-1 accent-accent4" />
-                        <div class="text-left pl-2">
-                            <p class="font-semibold text-primary">John Paul</p>
-                            <p class="text-sm text-accent2 italic">Finance committee member</p>
-                        </div>
-                    </label>
-
-                    
-                    <label
-                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
-                        <input type="checkbox" name="treasurer" value="candidate2" class="mt-1 accent-accent4" />
-                        <div class="text-left pl-2">
-                            <p class="font-semibold text-primary">Marsha Griffith</p>
-                            <p class="text-sm text-accent2 italic">Treasury intern, UWI graduate</p>
-                        </div>
-                    </label>
-
-                    
-                    <label
-                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
-                        <input type="checkbox" name="treasurer" value="candidate3" class="mt-1 accent-accent4" />
-                        <div class="text-left pl-2">
-                            <p class="font-semibold text-primary">Elliot Charles</p>
-                            <p class="text-sm text-accent2 italic">Experienced accountant</p>
-                        </div>
-                    </label>
-
-                    
-                    <label
-                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
-                        <input type="checkbox" name="treasurer" value="candidate4" class="mt-1 accent-accent4" />
-                        <div class="text-left pl-2">
-                            <p class="font-semibold text-primary">Sasha Niles</p>
-                            <p class="text-sm text-accent2 italic">Community volunteer with financial experience</p>
-                        </div>
-                    </label>
-
-                    
-                    <label
-                        class="flex items-start p-4 bg-white rounded-xl shadow hover:shadow-lg transition cursor-pointer space-x-4">
-                        <input type="checkbox" name="treasurer" value="candidate5" class="mt-1 accent-accent4" />
-                        <div class="text-left pl-2">
-                            <p class="font-semibold text-primary">Gerald Thompson</p>
-                            <p class="text-sm text-accent2 italic">Former assistant treasurer</p>
-                        </div>
-                    </label>
-                </div>
-
-
-                <p class="mt-4 text-xs text-accent2 italic">You can only select up to 3 candidates for this position.
-                </p>
-                <div class="mt-6 text-center">
-                    <button id="submitVoteBtn"
-                        class="bg-accent4 hover:bg-light3 hover:border-2 hover:shadow-accent2 hover:shadow-md text-white font-semibold py-2 px-6 rounded-md transition">
-                        Vote!
-                    </button>
-                </div>
-            </form>
-        </section> -->
-
-        
-    </main>
-
-
-    <!-- Footer -->
-    <footer class="mt-auto bg-primary text-white py-8 px-2 text-sm text-center">
-        <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
-    </footer>
-
+  <script src="../dist/bundle.js"></script>
 </body>
-<script src="../dist/bundle.js"></script>
-
 </html>

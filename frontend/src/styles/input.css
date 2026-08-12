@@ -1,18 +1,64 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #343075;  
-  --color-secondary: #eae9ef;
+  /* Brand */
+  --color-primary: #343075;
+  --color-primary-hover: #2a275f;
+  --color-primary-muted: #5f5c92;
 
+  --color-accent: #28ace3;
+  --color-accent-hover: #1f96c9;
+  --color-accent-soft: #e8f6fc;
+
+  --color-highlight: #fbdf13;
+  --color-highlight-soft: #fff8c4;
+
+  /* Surfaces (light-first) */
+  --color-surface: #ffffff;
+  --color-canvas: #f3f4f8;
+  --color-canvas-tint: #e8f6fc;
+
+  /* Neutrals */
+  --color-ink: #1c1b2e;
+  --color-ink-muted: #5c5a72;
+  --color-border: #cfcddc;
+  --color-border-strong: #8a87af;
+
+  /* Semantic — election-day states */
+  --color-success: #1f7a4c;
+  --color-success-soft: #e6f5ec;
+  --color-error: #b42318;
+  --color-error-soft: #fdeceb;
+  --color-warning: #9a7300;
+  --color-warning-soft: #fff6d6;
+
+  /* Retained aliases — migrate HTML/JS off these over time */
+  --color-secondary: #eae9ef;
   --color-accent1: #8a87af;
   --color-accent2: #5f5c92;
   --color-accent3: #b6b5ce;
   --color-accent4: #28ace3;
-
-  --color-highlight: #fbdf13;
-
   --color-light1: #e0dbb8;
   --color-light2: #d9ce80;
   --color-light3: #e7d536;
   --color-light4: #9dd5f0;
+
+  /* Type */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+
+  --text-display: 1.75rem;
+  --text-display--line-height: 1.2;
+
+  --text-title: 1.375rem;
+  --text-title--line-height: 1.3;
+
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+
+  --text-ui: 0.9375rem;
+  --text-ui--line-height: 1.4;
+
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
 }

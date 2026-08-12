@@ -2,199 +2,230 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRECCU Voting Manager</title>
-    <link href="../dist/output.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MRECCU Voting Manager</title>
+  <link href="../dist/output.css" rel="stylesheet">
 </head>
 
-<body class="w-full bg-light4 text-primary font-sans">
+<body class="flex min-h-screen flex-col bg-canvas font-sans text-ink antialiased">
 
-    <!-- Header -->
-    <header class="w-full bg-primary text-secondary py-6 shadow-lg">
-        <div class="w-fit h-fit text-sm px-4 py-2 mx-auto bg-accent3 rounded-2xl flex items-center justify-center">
-            <img src="../assets/mrccu-logo.png" alt="mreccu-logo" class="w-24 sm:w-32 md:w-40 lg:w-48 xl:w-52 h-auto" />
+  <header class="bg-primary text-secondary shadow-md">
+    <div class="mx-auto flex max-w-6xl flex-col items-center px-4 py-5 text-center">
+      <div class="mb-3 flex w-fit items-center justify-center rounded-2xl bg-surface px-4 py-2 shadow-sm">
+        <img
+          src="../assets/mrccu-logo.png"
+          alt="MRECCU logo"
+          class="h-auto w-28 sm:w-36"
+        />
+      </div>
+      <p class="text-caption font-medium tracking-wide text-highlight uppercase">Staff Console</p>
+      <h1 class="mt-1 text-title font-bold text-secondary">Voting Manager</h1>
+      <p class="mt-1 text-ui italic text-secondary/90">Our People, Our Community, Our Credit Union</p>
+    </div>
+  </header>
+
+  <div class="mx-auto w-full max-w-6xl flex-1 space-y-6 p-4 sm:p-6">
+
+    <div class="flex flex-col gap-6 lg:flex-row">
+      <!-- Active Voting Setup -->
+      <section class="space-y-5 rounded-2xl border border-border bg-surface p-5 shadow-sm lg:w-2/3 sm:p-6">
+        <h2 class="text-center text-title font-bold text-primary">Active Voting Configuration</h2>
+
+        <div class="space-y-2">
+          <label class="block text-ui font-semibold text-ink" for="positionSelect">Select Position</label>
+          <select
+            id="positionSelect"
+            title="select_position"
+            class="min-h-12 w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-body text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+          >
+            <option disabled selected>Select</option>
+            <option>Board of Directors</option>
+            <option>Credit Committee</option>
+            <option>Supervisory Committee</option>
+            <option>RESOLUTION - To Provide Honorarium for Officers</option>
+            <option>RESOLUTION - Declaration of dividends and Patronage Refund</option>
+            <option>RESOLUTION - To Appoint Auditor</option>
+            <option>Test Run</option>
+          </select>
         </div>
-        <div class="container mx-auto text-center">
-            <p class="text-lg pt-2 text-highlight font-semibold italic">Our People, Our Community, Our Credit Union</p>
+
+        <div class="space-y-2">
+          <label class="block text-ui font-semibold text-ink">Number of Votes Allowed</label>
+          <div class="flex flex-wrap items-center gap-3">
+            <span id="votesAllowedText" class="rounded-md bg-accent-soft px-3 py-1.5 text-ui font-semibold text-accent">Not Set</span>
+            <button
+              id="setVotesAllowedBtn"
+              type="button"
+              class="min-h-10 rounded-lg bg-primary px-3 py-2 text-caption font-semibold text-white transition hover:bg-primary-hover"
+            >Set</button>
+          </div>
         </div>
-    </header>
 
-
-    <!-- Main Content - Admin Dashboard Layout -->
-    <div class="flex flex-col lg:flex-row gap-8 p-6">
-        <!-- Active Voting Setup -->
-        <section class="lg:w-2/3 bg-white p-6 rounded-xl shadow space-y-4">
-            <h2 class="text-xl text-center font-bold text-primary">Active Voting Configuration</h2>
-
-            <!-- Select Position -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium">Select Position</label>
-                <select id="positionSelect" title="select_position"
-                    class="w-full px-4 py-2 border border-accent4 rounded-md focus:outline-none focus:ring-2 focus:ring-accent4">
-                    <option disabled selected>Select</option>
-                    <option>Board of Directors</option>
-                    <option>Credit Committee</option>
-                    <option>Supervisory Committee</option>
-                    <option>RESOLUTION - To Provide Honorarium for Officers</option>
-                    <option>RESOLUTION - Declaration of dividends and Patronage Refund</option>
-                    <option>RESOLUTION - To Appoint Auditor</option>
-                    <option>Test Run</option>
-                </select>
+        <div class="space-y-2">
+          <label class="block text-ui font-semibold text-ink" for="candidateName">Candidates</label>
+          <div class="space-y-2">
+            <div class="grid gap-2 sm:grid-cols-2">
+              <input
+                type="text"
+                id="candidateName"
+                placeholder="Candidate Name"
+                class="min-h-12 rounded-lg border border-border px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+              />
+              <input
+                type="text"
+                id="candidateOccupation"
+                placeholder="Candidate Occupation"
+                class="min-h-12 rounded-lg border border-border px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+              />
             </div>
+            <button
+              id="addCandidateBtn"
+              type="button"
+              class="min-h-11 rounded-lg bg-accent px-4 py-2 text-ui font-semibold text-white transition hover:bg-accent-hover"
+            >Add Candidate</button>
 
-            <!-- Number of Votes Allowed -->
-            <div class="space-y-2">
-    <label class="block text-sm font-medium">Number of Votes Allowed</label>
-    <div class="flex gap-2 items-center">
-      <span id="votesAllowedText" class="font-semibold text-accent4 pr-4">Not Set</span>
-      <button 
-        id="setVotesAllowedBtn" 
-        class="px-2 py-1 text-xs rounded bg-accent4 text-white"
-      >Set</button>
-    </div>
-  </div>
-
-
-            <!-- Candidate List -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium">Candidates</label>
-                <div class="space-y-2">
-                    <div class="items-center gap-2">
-                        <input type="text" id="candidateName" placeholder="Candidate Name"
-                            class="flex-1 px-4 py-2 mb-1 border border-accent4 rounded-md" />
-                        <input type="text" id="candidateOccupation" placeholder="Candidate Occupation"
-                            class="flex-1 px-4 py-2 mb-1 border border-accent4 rounded-md" />
-                        <button id="addCandidateBtn" class="bg-accent4 text-white px-3 py-1 rounded hover:bg-light3">Add</button>
-                    </div>
-
-                    <!-- Existing Candidates List -->
-                    <ul id="candidateList" class="text-sm space-y-1">
-                        <!-- JS will populate this -->
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <!-- Voting History / Control Center -->
-        <aside class="lg:w-1/3 bg-white p-4 rounded-xl shadow space-y-4">
-            <h3 class="text-lg text-center font-bold text-primary">Control Center</h3>
-            <div class="bg-white p-3 rounded-md shadow">
-                <button id="toggleUploadCSV" type="button"
-                    class="w-full text-left text-primary font-semibold py-2 px-3 hover:bg-accent3/20 rounded transition">
-                    Upload Voter Data
-                </button>
-
-                <div id="uploadCSVSection" class="hidden space-y-3 mt-2">
-                    <input type="file" accept=".csv" class="w-full border border-accent4 p-2 rounded-md" required />
-                    <button type="submit"
-                        class="bg-accent4 text-white font-semibold py-2 px-4 rounded-md hover:bg-light3 transition">
-                        Upload CSV
-                    </button>
-                </div>
-            </div>
-
-
-            <div class="bg-white p-3 rounded-md shadow">
-                <button id="toggleVotingSectionBtn" type="button"
-                    class="w-full text-left text-primary font-semibold py-2 px-3 hover:bg-accent3/20 rounded transition">
-                    Toggle Voting
-                </button>
-                <div id="toggleVotingSection" class="hidden space-y-3 mt-4">
-                    <p id="votingStatusText" class="text-primary/70 hidden">Voting in progress. View voting activity
-                        below.</p>
-                    <button id="toggleVotingBtn" type="button"
-                        class="text-center bg-accent4 text-white font-semibold py-2 px-4 rounded-md hover:bg-light3 transition">
-                        Start Voting
-                    </button>
-                </div>
-            </div>
-
-            <!-- Voting Activity Section (Add this inside it) -->
-<div id="pollResultsSection" class="text-center mt-2 mx-auto space-y-2">
-  <button id="openPollModalBtn" class="bg-accent4 text-white px-4 py-2 rounded hover:bg-light3 transition">
-    Add Paper-Based Votes
-  </button>
-</div>
-
-<!-- Modal for Manual Vote Entry -->
-<div id="pollResultsModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6 space-y-4">
-    <h2 class="text-xl font-semibold text-primary text-center">Add Manual Votes</h2>
-
-    <form id="manualVotesForm" class="space-y-3">
-      <!-- Dynamically populated input fields go here -->
-    </form>
-
-    <div class="flex justify-end space-x-2 pt-2">
-      <button id="cancelPollBtn" type="button"
-        class="px-4 py-2 bg-accent2 text-white rounded-md hover:bg-accent3 transition">Cancel</button>
-      <button id="submitPollBtn" type="button"
-        class="px-4 py-2 bg-accent4 text-white rounded-md hover:bg-light3 transition">Submit</button>
-    </div>
-  </div>
-</div>
-
-
-
-        </aside>
-    </div>
-
-    <!-- Part 2 -->
-
-
-
-    <div class="flex flex-col lg:flex-row gap-8 p-6">
-        <!-- Active Voting Setup -->
-        <section class="lg:w-2/3 bg-white p-6 rounded-xl shadow space-y-4">
-            <h2 class="text-xl text-center font-bold text-primary">Voting Activity</h2>
-
-            <p id="votingInactiveMsg" class="text-center text-accent2 italic">Voting is not active at the moment.</p>
-
-            <div id="votingStats" class="hidden space-y-4">
-                <div>
-                <label class="font-medium">Votes Cast:</label>
-                <div class="w-full bg-gray-200 rounded-full h-4">
-                    <div id="votesProgress" class="w-0 bg-accent4 h-4 rounded-full transition-all duration-300"></div>
-                </div>
-                <p class="text-sm text-primary/70"><span id="votesCount">0</span> votes cast out of <span id="votesTotal">0</span> registered voters</p>
-                </div>
-
-                <div id="candidateVotes" class="space-y-2 text-sm"></div>
-            </div>
-        </section>
-
-        <aside class="lg:w-1/3 bg-white p-4 rounded-xl shadow space-y-4">
-            <h3 class="text-lg text-center font-bold text-primary">Voting History</h3>
-            
-            <ul id="votingHistoryList" class="space-y-3 text-sm">
-                <!-- Items will be dynamically inserted here -->
+            <ul id="candidateList" class="space-y-2 text-ui">
+              <!-- JS will populate this -->
             </ul>
+          </div>
+        </div>
+      </section>
 
-            <p id="noVotingHistoryMsg" class="text-center text-accent2 italic hidden">No completed positions yet.</p>
-        </aside>
+      <!-- Control Center -->
+      <aside class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm lg:w-1/3">
+        <h3 class="text-center text-title font-bold text-primary">Control Center</h3>
 
+        <div class="rounded-xl border border-border bg-canvas/60 p-3">
+          <button
+            id="toggleUploadCSV"
+            type="button"
+            class="w-full rounded-lg px-3 py-2.5 text-left text-ui font-semibold text-primary transition hover:bg-accent-soft"
+          >
+            Upload Voter Data
+          </button>
+
+          <div id="uploadCSVSection" class="mt-2 hidden space-y-3">
+            <input type="file" accept=".csv" class="w-full rounded-lg border border-border bg-surface p-2 text-caption" required />
+            <button
+              type="submit"
+              class="min-h-11 w-full rounded-lg bg-accent px-4 py-2 text-ui font-semibold text-white transition hover:bg-accent-hover"
+            >
+              Upload CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-border bg-canvas/60 p-3">
+          <button
+            id="toggleVotingSectionBtn"
+            type="button"
+            class="w-full rounded-lg px-3 py-2.5 text-left text-ui font-semibold text-primary transition hover:bg-accent-soft"
+          >
+            Toggle Voting
+          </button>
+          <div id="toggleVotingSection" class="mt-3 hidden space-y-3">
+            <p id="votingStatusText" class="hidden text-ui text-ink-muted">
+              Voting in progress. View voting activity below.
+            </p>
+            <button
+              id="toggleVotingBtn"
+              type="button"
+              class="min-h-11 w-full rounded-lg bg-accent px-4 py-2 text-center text-ui font-semibold text-white transition hover:bg-accent-hover"
+            >
+              Start Voting
+            </button>
+          </div>
+        </div>
+
+        <div id="pollResultsSection" class="space-y-2 text-center">
+          <button
+            id="openPollModalBtn"
+            type="button"
+            class="min-h-11 w-full rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
+          >
+            Add Paper-Based Votes
+          </button>
+        </div>
+      </aside>
     </div>
 
-  
+    <!-- Modal for Manual Vote Entry -->
+    <div id="pollResultsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-ink/70 p-4">
+      <div class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-surface p-6 shadow-lg ring-1 ring-border">
+        <h2 class="text-center text-title font-semibold text-primary">Add Manual Votes</h2>
 
-    <!-- Footer -->
-    <footer class="mt-auto bg-primary text-white py-8 px-2 text-sm text-center">
-        <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
-    </footer>
+        <form id="manualVotesForm" class="mt-4 space-y-3">
+          <!-- Dynamically populated input fields go here -->
+        </form>
+
+        <div class="flex justify-end gap-2 pt-4">
+          <button
+            id="cancelPollBtn"
+            type="button"
+            class="min-h-11 rounded-lg bg-primary-muted px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary"
+          >Cancel</button>
+          <button
+            id="submitPollBtn"
+            type="button"
+            class="min-h-11 rounded-lg bg-accent px-4 py-2 text-ui font-semibold text-white transition hover:bg-accent-hover"
+          >Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-6 lg:flex-row">
+      <!-- Live tallies -->
+      <section class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm lg:w-2/3 sm:p-6">
+        <h2 class="text-center text-title font-bold text-primary">Voting Activity</h2>
+
+        <p id="votingInactiveMsg" class="rounded-xl bg-warning-soft px-4 py-6 text-center text-ui text-warning">
+          Voting is not active at the moment.
+        </p>
+
+        <div id="votingStats" class="hidden space-y-5">
+          <div>
+            <div class="mb-2 flex items-baseline justify-between gap-2">
+              <label class="text-ui font-semibold text-ink">Turnout</label>
+              <p class="text-caption text-ink-muted">
+                <span id="votesCount">0</span> of <span id="votesTotal">0</span> registered voters
+              </p>
+            </div>
+            <div class="h-3 w-full overflow-hidden rounded-full bg-border/60">
+              <div
+                id="votesProgress"
+                class="h-3 w-0 rounded-full bg-accent transition-all duration-300"
+              ></div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="mb-3 text-ui font-semibold text-ink">Candidate tallies</h3>
+            <div id="candidateVotes" class="space-y-3 text-ui"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm lg:w-1/3">
+        <h3 class="text-center text-title font-bold text-primary">Voting History</h3>
+
+        <ul id="votingHistoryList" class="space-y-3 text-ui">
+          <!-- Items will be dynamically inserted here -->
+        </ul>
+
+        <p id="noVotingHistoryMsg" class="hidden text-center text-ui italic text-ink-muted">
+          No completed positions yet.
+        </p>
+      </aside>
+    </div>
+
+  </div>
+
+  <footer class="mt-auto bg-primary px-4 py-6 text-center text-caption text-white/90">
+    <p>&copy; 2025 Mon Repos Eastern Co-operative Credit Union 1968 Ltd. All Rights Reserved</p>
+  </footer>
+
+  <script src="../dist/bundle.js"></script>
 
 </body>
-<script src="../dist/bundle.js">
-    function addCandidateField() {
-        const container = document.getElementById('candidateFields');
-        const inputGroup = document.createElement('div');
-        inputGroup.className = 'flex gap-2';
-        inputGroup.innerHTML = `
-      <input type="text" name="candidate[]" class="flex-1 px-4 py-2 border border-accent3 rounded-md" />
-      <button type="button" onclick="this.parentElement.remove()" class="bg-red-500 text-white px-3 rounded-md">–</button>
-    `;
-        container.appendChild(inputGroup);
-    }
-</script>
-
 </html>
