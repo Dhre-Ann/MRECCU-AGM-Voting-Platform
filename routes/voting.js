@@ -98,15 +98,14 @@ router.post('/stop', async (req, res) => {
     const positionId = positionResult.rows[0].id;
 
     // ✅ Set voting_active = FALSE **and** voting_complete = TRUE
+    // Eligibility for the next race is "no electronic ballot_casts row for that position",
+    // not a global voters.has_voted reset.
     await pool.query(
       'UPDATE positions SET voting_active = FALSE, voting_complete = TRUE WHERE id = $1',
       [positionId]
     );
 
-    // Reset has_voted for all voters
-    await pool.query('UPDATE voters SET has_voted = FALSE');
-
-    res.json({ success: true, message: 'Voting stopped successfully. Position marked complete. All voters reset.' });
+    res.json({ success: true, message: 'Voting stopped successfully. Position marked complete.' });
 
   } catch (err) {
     console.error(err);
@@ -168,10 +167,13 @@ router.post('/get-active', async (req, res) => {
       [position.id]
     );
 
-    // Now get whether user has voted
-    const userResult = await pool.query(
-      'SELECT has_voted FROM voters WHERE id = $1',
-      [voterId]
+    // Whether this voter already cast an electronic ballot for THIS position
+    const votedResult = await pool.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM ballot_casts
+         WHERE voter_id = $1 AND position_id = $2 AND source = 'electronic'
+       ) AS has_voted`,
+      [voterId, position.id]
     );
 
     res.json({
@@ -179,7 +181,7 @@ router.post('/get-active', async (req, res) => {
       position: position.name,
       num_votes_allowed: position.num_votes_allowed,
       candidates: candidatesResult.rows,
-      hasVoted: userResult.rows[0]?.has_voted || false,  // 👈 extract BOOLEAN directly
+      hasVoted: votedResult.rows[0]?.has_voted || false,
     });
 
 
@@ -198,53 +200,117 @@ router.post('/vote', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Voter ID, position, and selected candidates are required' });
   }
 
+  const uniqueCandidateIds = [...new Set(selectedCandidates.map((id) => Number(id)))];
+  if (uniqueCandidateIds.length !== selectedCandidates.length || uniqueCandidateIds.some((id) => !Number.isInteger(id))) {
+    return res.status(400).json({ success: false, message: 'Selected candidates must be unique valid IDs' });
+  }
+
+  const client = await pool.connect();
+
   try {
-    // ✅ Check that user has not voted yet
-    const voterResult = await pool.query('SELECT has_voted FROM voters WHERE id = $1', [voterId]);
+    await client.query('BEGIN');
+
+    // Serialize concurrent casts from the same voter (unique index is the real race closer)
+    const voterResult = await client.query(
+      'SELECT id FROM voters WHERE id = $1 FOR UPDATE',
+      [voterId]
+    );
 
     if (voterResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ success: false, message: 'Voter not found' });
     }
 
-    if (voterResult.rows[0].has_voted) {
-      return res.status(403).json({ success: false, message: 'You have already voted for this position.' });
-    }
-
     // ✅ Check that voting is active for the position
-    const posResult = await pool.query(
+    const posResult = await client.query(
       'SELECT id, num_votes_allowed FROM positions WHERE name = $1 AND voting_active = true',
       [position]
     );
 
     if (posResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ success: false, message: 'Voting is not active for this position' });
     }
 
     const positionData = posResult.rows[0];
 
-    if (selectedCandidates.length !== positionData.num_votes_allowed) {
+    if (uniqueCandidateIds.length !== positionData.num_votes_allowed) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: `You must vote for exactly ${positionData.num_votes_allowed} candidate(s).`,
       });
     }
 
-    // ✅ Increment vote_count for each selected candidate
-    for (const candidateId of selectedCandidates) {
-      await pool.query(
+    // Soft check before insert (unique index still closes the race)
+    const alreadyCast = await client.query(
+      `SELECT 1 FROM ballot_casts
+       WHERE voter_id = $1 AND position_id = $2 AND source = 'electronic'`,
+      [voterId, positionData.id]
+    );
+
+    if (alreadyCast.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ success: false, message: 'You have already voted for this position.' });
+    }
+
+    // Validate each candidate belongs to this position
+    const candidatesCheck = await client.query(
+      `SELECT id FROM candidates
+       WHERE position_id = $1 AND id = ANY($2::int[])`,
+      [positionData.id, uniqueCandidateIds]
+    );
+
+    if (candidatesCheck.rows.length !== uniqueCandidateIds.length) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'One or more selected candidates are invalid for this position' });
+    }
+
+    const castResult = await client.query(
+      `INSERT INTO ballot_casts (voter_id, position_id, source)
+       VALUES ($1, $2, 'electronic')
+       RETURNING id`,
+      [voterId, positionData.id]
+    );
+    const castId = castResult.rows[0].id;
+
+    for (const candidateId of uniqueCandidateIds) {
+      await client.query(
+        `INSERT INTO ballot_lines (cast_id, candidate_id, quantity)
+         VALUES ($1, $2, 1)`,
+        [castId, candidateId]
+      );
+
+      const updateResult = await client.query(
         'UPDATE candidates SET vote_count = vote_count + 1 WHERE id = $1 AND position_id = $2',
         [candidateId, positionData.id]
       );
+
+      if (updateResult.rowCount !== 1) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ success: false, message: 'One or more selected candidates are invalid for this position' });
+      }
     }
 
-    // ✅ Set has_voted = true
-    await pool.query('UPDATE voters SET has_voted = TRUE WHERE id = $1', [voterId]);
-
+    await client.query('COMMIT');
     return res.json({ success: true, message: 'Your vote has been recorded' });
 
   } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('Error rolling back vote transaction:', rollbackErr);
+    }
+
+    // Unique index: concurrent double-submit for same voter+position
+    if (err.code === '23505') {
+      return res.status(403).json({ success: false, message: 'You have already voted for this position.' });
+    }
+
     console.error('Error submitting vote:', err);
     return res.status(500).json({ success: false, message: 'Error submitting vote' });
+  } finally {
+    client.release();
   }
 });
 
@@ -265,12 +331,21 @@ router.get('/history', async (req, res) => {
     const totalResult = await pool.query('SELECT COUNT(*) FROM positions');
     const totalPositionsCount = parseInt(totalResult.rows[0].count, 10);
 
-    // For each completed position, get candidates
+    // For each completed position, get candidates (+ optional audit breakdown)
     const history = [];
 
     for (const pos of completedPositions) {
       const candidatesResult = await pool.query(
-        'SELECT name, vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
+        `SELECT c.name,
+                c.vote_count,
+                COALESCE(SUM(bl.quantity) FILTER (WHERE bc.source = 'electronic'), 0)::int AS electronic_votes,
+                COALESCE(SUM(bl.quantity) FILTER (WHERE bc.source = 'paper'), 0)::int AS paper_votes
+         FROM candidates c
+         LEFT JOIN ballot_lines bl ON bl.candidate_id = c.id
+         LEFT JOIN ballot_casts bc ON bc.id = bl.cast_id AND bc.position_id = c.position_id
+         WHERE c.position_id = $1
+         GROUP BY c.id, c.name, c.vote_count
+         ORDER BY c.vote_count DESC`,
         [pos.id]
       );
 
@@ -313,11 +388,15 @@ router.get('/live-stats', async (req, res) => {
     const totalVotersResult = await pool.query('SELECT COUNT(*) FROM voters');
     const totalVoters = parseInt(totalVotersResult.rows[0].count, 10);
 
-    // ✅ Count the number of *people* who have voted (NOT the number of votes cast)
-    const votersWhoVotedResult = await pool.query('SELECT COUNT(*) FROM voters WHERE has_voted = TRUE');
+    // Turnout for THIS position only (electronic members)
+    const votersWhoVotedResult = await pool.query(
+      `SELECT COUNT(*) FROM ballot_casts
+       WHERE position_id = $1 AND source = 'electronic'`,
+      [positionId]
+    );
     const votersWhoVoted = parseInt(votersWhoVotedResult.rows[0].count, 10);
 
-    // Votes per candidate
+    // Votes per candidate (maintained cache)
     const candidateVotesResult = await pool.query(
       'SELECT name, vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
       [positionId]
@@ -326,7 +405,7 @@ router.get('/live-stats', async (req, res) => {
     res.json({
       success: true,
       totalVoters,
-      votersWhoVoted, // ✅ <-- renamed for clarity
+      votersWhoVoted,
       candidates: candidateVotesResult.rows,
     });
 
@@ -343,29 +422,84 @@ router.post('/poll-results', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid results data.' });
   }
 
-  try {
-    for (const positionName in resultsByPosition) {
-    const positionResult = await pool.query('SELECT id FROM positions WHERE name = $1', [positionName]);
-    const positionId = positionResult.rows[0].id;
+  const client = await pool.connect();
 
-    for (const entry of resultsByPosition[positionName]) {
-      await pool.query(
-        'UPDATE candidates SET vote_count = vote_count + $1 WHERE name = $2 AND position_id = $3',
-        [entry.count, entry.candidateName, positionId]
+  try {
+    await client.query('BEGIN');
+
+    for (const positionName in resultsByPosition) {
+      const positionResult = await client.query(
+        'SELECT id FROM positions WHERE name = $1',
+        [positionName]
+      );
+
+      if (positionResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, message: `Position not found: ${positionName}` });
+      }
+
+      const positionId = positionResult.rows[0].id;
+
+      const castResult = await client.query(
+        `INSERT INTO ballot_casts (voter_id, position_id, source)
+         VALUES (NULL, $1, 'paper')
+         RETURNING id`,
+        [positionId]
+      );
+      const castId = castResult.rows[0].id;
+
+      for (const entry of resultsByPosition[positionName]) {
+        const count = Number(entry.count);
+        if (!Number.isInteger(count) || count <= 0) {
+          continue;
+        }
+
+        const candidateResult = await client.query(
+          'SELECT id FROM candidates WHERE name = $1 AND position_id = $2',
+          [entry.candidateName, positionId]
+        );
+
+        if (candidateResult.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            success: false,
+            message: `Candidate not found: ${entry.candidateName} (${positionName})`,
+          });
+        }
+
+        const candidateId = candidateResult.rows[0].id;
+
+        await client.query(
+          `INSERT INTO ballot_lines (cast_id, candidate_id, quantity)
+           VALUES ($1, $2, $3)`,
+          [castId, candidateId, count]
+        );
+
+        await client.query(
+          'UPDATE candidates SET vote_count = vote_count + $1 WHERE id = $2 AND position_id = $3',
+          [count, candidateId, positionId]
+        );
+      }
+
+      await client.query(
+        'UPDATE positions SET paper_results_added = TRUE WHERE id = $1',
+        [positionId]
       );
     }
 
-    // ✅ mark as paper results added
-    await pool.query(
-      'UPDATE positions SET paper_results_added = TRUE WHERE id = $1',
-      [positionId]
-    );
-  }
+    await client.query('COMMIT');
     res.json({ success: true, message: 'Manual results added successfully.' });
 
   } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('Error rolling back poll-results transaction:', rollbackErr);
+    }
     console.error('Error pooling manual votes:', err);
     res.status(500).json({ success: false, message: 'Server error while pooling votes.' });
+  } finally {
+    client.release();
   }
 });
 

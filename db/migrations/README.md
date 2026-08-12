@@ -21,4 +21,6 @@ Rules:
 2. Prefer additive / reversible wording in the description (`create_…`, `add_…`, `drop_…`).
 3. Do not edit a migration after it has been applied against a shared database; add a new file instead.
 
-The first migration (ballots table) will be added in a follow-up change — keep this folder empty of `.sql` files until then.
+Applied / present migrations:
+
+- `20260811100000_create_ballots_tables.sql` — `ballot_casts` + `ballot_lines` for per-ballot audit trail
