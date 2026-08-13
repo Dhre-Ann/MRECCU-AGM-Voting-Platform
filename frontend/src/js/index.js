@@ -170,6 +170,28 @@ const addCandidateBtn = document.getElementById('addCandidateBtn');
 const candidateList = document.getElementById('candidateList');
 let previousVotingActive = null;
 
+const START_VOTING_BTN_CLASS =
+  'min-h-11 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50';
+const STOP_VOTING_BTN_CLASS =
+  'min-h-11 rounded-lg bg-error px-4 py-2 text-ui font-semibold text-white transition hover:bg-error/90 disabled:cursor-not-allowed disabled:opacity-50';
+const START_VOTING_PANEL_CLASS =
+  'space-y-3 rounded-xl border border-border bg-canvas/60 p-4 text-center';
+const STOP_VOTING_PANEL_CLASS =
+  'space-y-3 rounded-xl border border-border bg-canvas/60 p-4 text-center';
+
+function setToggleVotingAppearance(isActive) {
+  if (!toggleVotingBtn) return;
+  const wasDisabled = toggleVotingBtn.disabled;
+  toggleVotingBtn.textContent = isActive ? 'Stop Voting' : 'Start Voting';
+  toggleVotingBtn.className = isActive ? STOP_VOTING_BTN_CLASS : START_VOTING_BTN_CLASS;
+  toggleVotingBtn.disabled = wasDisabled;
+  if (toggleVotingSection) {
+    const isCollapsed = toggleVotingSection.classList.contains('hidden');
+    toggleVotingSection.className = isActive ? STOP_VOTING_PANEL_CLASS : START_VOTING_PANEL_CLASS;
+    if (isCollapsed) toggleVotingSection.classList.add('hidden');
+  }
+}
+
 
 // Toggle voting start and stop
 async function updateToggleVotingButtonState() {
@@ -190,13 +212,13 @@ async function updateToggleVotingButtonState() {
 
     // Set the button and UI state based on voting_active
     if (data.voting_active) {
-      toggleVotingBtn.textContent = 'Stop Voting';
+      setToggleVotingAppearance(true);
       votingInactiveMsg.classList.add('hidden');
       votingStatusText.classList.remove('hidden');
       votingStats.classList.remove('hidden');
       loadActiveVoting(); // Update stats if voting is ongoing
     } else {
-      toggleVotingBtn.textContent = 'Start Voting';
+      setToggleVotingAppearance(false);
       votingStats.classList.add('hidden');
       votingStatusText.classList.add('hidden');
       votingInactiveMsg.classList.remove('hidden');
@@ -227,7 +249,7 @@ if (toggleVotingBtn){
       const data = await response.json();
 
       if (data.success) {
-        toggleVotingBtn.textContent = 'Stop Voting';
+        setToggleVotingAppearance(true);
         votingInactiveMsg.classList.add('hidden');
         votingStatusText.classList.remove('hidden');
         votingStats.classList.remove('hidden');
@@ -248,7 +270,7 @@ if (toggleVotingBtn){
       const data = await response.json();
 
       if (data.success) {
-        toggleVotingBtn.textContent = 'Start Voting';
+        setToggleVotingAppearance(false);
         votingStats.classList.add('hidden');
         votingStatusText.classList.add('hidden');
         votingInactiveMsg.classList.remove('hidden');
@@ -413,11 +435,12 @@ document.addEventListener('DOMContentLoaded', () => {
       input.value = (votesAllowedText.textContent !== 'Not Set' && votesAllowedText.textContent !== 'Error') 
         ? votesAllowedText.textContent 
         : '';
-      input.className = 'w-24 px-2 py-1 border rounded border-accent4';
+      input.className = 'inline-flex min-h-11 min-w-28 items-center rounded-lg border border-border px-4 text-center text-ui text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40';
 
       const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
       saveBtn.textContent = 'Save';
-      saveBtn.className = 'ml-2 px-2 py-1 text-xs rounded bg-primary text-white';
+      saveBtn.className = 'inline-flex min-h-11 min-w-28 items-center justify-center rounded-lg bg-primary px-4 text-ui font-semibold text-white transition hover:bg-primary-hover';
 
       const container = votesAllowedText.parentElement;
       container.replaceChild(input, votesAllowedText);
@@ -448,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
             container.replaceChild(votesAllowedText, input);
             saveBtn.remove();
             setVotesAllowedBtn.textContent = 'Edit';
-            setVotesAllowedBtn.style.display = 'inline-block';
+            setVotesAllowedBtn.style.display = '';
           } else {
             alert('Failed to update. Please try again.');
           }
@@ -465,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadVotingStatus(positionName) {
   if (!positionName || positionName === 'Select') {
     toggleVotingBtn.disabled = true;
-    toggleVotingBtn.textContent = 'Start Voting';
+    setToggleVotingAppearance(false);
     votingStats.classList.add('hidden');
     votingInactiveMsg.classList.remove('hidden');
     return;
@@ -476,14 +499,14 @@ async function loadVotingStatus(positionName) {
 
     if (data.success) {
       if (data.voting_active) {
-        toggleVotingBtn.textContent = 'Stop Voting';
+        setToggleVotingAppearance(true);
         votingStats.classList.remove('hidden');
         votingInactiveMsg.classList.add('hidden');
         votingStatusText.classList.remove('hidden');
         loadLiveVotingStats(positionName);
         setInterval(() => loadLiveVotingStats(positionName), 3000);
       } else {
-        toggleVotingBtn.textContent = 'Start Voting';
+        setToggleVotingAppearance(false);
         votingStats.classList.add('hidden');
         votingInactiveMsg.classList.remove('hidden');
         votingStatusText.classList.add('hidden');
@@ -1032,7 +1055,7 @@ if (uploadBtn){
 // ====================================== ADMIN TABS + NEW TOOLS ======================================
 
 const ADMIN_TAB_KEY = 'adminActiveTab';
-const ADMIN_TAB_IDS = ['setup', 'control', 'activity', 'voters', 'results', 'emergency'];
+const ADMIN_TAB_IDS = ['setup', 'activity', 'voters', 'results', 'emergency'];
 const TAB_IDLE =
   'admin-tab min-h-11 rounded-lg px-3 py-2 text-ui font-semibold text-ink-muted transition hover:bg-accent-soft hover:text-primary';
 const TAB_ACTIVE =

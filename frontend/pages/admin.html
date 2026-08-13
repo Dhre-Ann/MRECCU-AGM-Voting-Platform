@@ -27,8 +27,7 @@
 
   <nav class="sticky top-0 z-40 border-b border-border bg-surface/95 shadow-sm backdrop-blur" aria-label="Admin sections">
     <div class="mx-auto flex max-w-6xl flex-wrap gap-1 px-3 py-2 sm:px-6" role="tablist">
-      <button type="button" role="tab" data-admin-tab="setup" aria-selected="true" class="admin-tab min-h-11 rounded-lg bg-accent-soft px-3 py-2 text-ui font-semibold text-primary">Setup</button>
-      <button type="button" role="tab" data-admin-tab="control" aria-selected="false" class="admin-tab min-h-11 rounded-lg px-3 py-2 text-ui font-semibold text-ink-muted transition hover:bg-accent-soft hover:text-primary">Control Center</button>
+      <button type="button" role="tab" data-admin-tab="setup" aria-selected="true" class="admin-tab min-h-11 rounded-lg bg-accent-soft px-3 py-2 text-ui font-semibold text-primary">Race</button>
       <button type="button" role="tab" data-admin-tab="activity" aria-selected="false" class="admin-tab min-h-11 rounded-lg px-3 py-2 text-ui font-semibold text-ink-muted transition hover:bg-accent-soft hover:text-primary">Voting Activity</button>
       <button type="button" role="tab" data-admin-tab="voters" aria-selected="false" class="admin-tab min-h-11 rounded-lg px-3 py-2 text-ui font-semibold text-ink-muted transition hover:bg-accent-soft hover:text-primary">Voter Management</button>
       <button type="button" role="tab" data-admin-tab="results" aria-selected="false" class="admin-tab min-h-11 rounded-lg px-3 py-2 text-ui font-semibold text-ink-muted transition hover:bg-accent-soft hover:text-primary">Results</button>
@@ -38,10 +37,10 @@
 
   <div class="mx-auto w-full max-w-6xl flex-1 space-y-6 p-4 sm:p-6">
 
-    <!-- Setup — existing position / votes-allowed / candidates (IDs unchanged) -->
+    <!-- Race — position / candidates / start-stop (IDs unchanged) -->
     <div data-admin-panel="setup">
       <section class="space-y-5 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6">
-        <h2 class="text-center text-title font-bold text-primary">Active Voting Configuration</h2>
+        <h2 class="text-center text-title font-bold text-primary">Race configuration</h2>
 
         <div class="space-y-2">
           <label class="block text-ui font-semibold text-ink" for="positionSelect">Select Position</label>
@@ -64,11 +63,11 @@
         <div class="space-y-2">
           <label class="block text-ui font-semibold text-ink">Number of Votes Allowed</label>
           <div class="flex flex-wrap items-center gap-3">
-            <span id="votesAllowedText" class="rounded-md bg-accent-soft px-3 py-1.5 text-ui font-semibold text-accent">Not Set</span>
+            <span id="votesAllowedText" class="inline-flex min-h-11 min-w-28 items-center justify-center rounded-lg bg-accent-soft px-4 text-ui font-semibold text-accent">Not Set</span>
             <button
               id="setVotesAllowedBtn"
               type="button"
-              class="min-h-10 rounded-lg bg-primary px-3 py-2 text-caption font-semibold text-white transition hover:bg-primary-hover"
+              class="inline-flex min-h-11 min-w-28 items-center justify-center rounded-lg bg-primary px-4 text-ui font-semibold text-white transition hover:bg-primary-hover"
             >Set</button>
           </div>
         </div>
@@ -76,7 +75,7 @@
         <div class="space-y-2">
           <label class="block text-ui font-semibold text-ink" for="candidateName">Candidates</label>
           <div class="space-y-2">
-            <div class="grid gap-2 sm:grid-cols-2">
+            <div class="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-stretch">
               <input
                 type="text"
                 id="candidateName"
@@ -89,82 +88,51 @@
                 placeholder="Candidate Occupation"
                 class="min-h-12 rounded-lg border border-border px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
+              <button
+                id="addCandidateBtn"
+                type="button"
+                class="min-h-12 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
+              >Add Candidate</button>
             </div>
-            <button
-              id="addCandidateBtn"
-              type="button"
-              class="min-h-11 rounded-lg bg-accent px-4 py-2 text-ui font-semibold text-white transition hover:bg-accent-hover"
-            >Add Candidate</button>
 
             <ul id="candidateList" class="space-y-2 text-ui">
               <!-- JS will populate this -->
             </ul>
           </div>
         </div>
+
+        <button
+          id="toggleVotingSectionBtn"
+          type="button"
+          class="hidden"
+        >Toggle Voting</button>
+        <div id="toggleVotingSection" class="space-y-3 rounded-xl border border-border bg-canvas/60 p-4 text-center">
+          <p id="votingStatusText" class="hidden text-ui text-ink-muted">
+            Voting in progress. Live tallies are on the Voting Activity tab.
+          </p>
+          <button
+            id="toggleVotingBtn"
+            type="button"
+            class="min-h-11 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
+          >
+            Start Voting
+          </button>
+        </div>
       </section>
     </div>
 
-    <!-- Control Center — existing CSV / toggle / paper votes (IDs unchanged) -->
-    <div data-admin-panel="control" class="hidden">
-      <aside class="mx-auto max-w-xl space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <h3 class="text-center text-title font-bold text-primary">Control Center</h3>
-
-        <div class="rounded-xl border border-border bg-canvas/60 p-3">
-          <button
-            id="toggleUploadCSV"
-            type="button"
-            class="w-full rounded-lg px-3 py-2.5 text-left text-ui font-semibold text-primary transition hover:bg-accent-soft"
-          >
-            Upload Voter Data
-          </button>
-
-          <div id="uploadCSVSection" class="mt-2 hidden space-y-3">
-            <input type="file" accept=".csv" class="w-full rounded-lg border border-border bg-surface p-2 text-caption" required />
-            <button
-              type="submit"
-              class="min-h-11 w-full rounded-lg bg-accent px-4 py-2 text-ui font-semibold text-white transition hover:bg-accent-hover"
-            >
-              Upload CSV
-            </button>
-          </div>
-        </div>
-
-        <div class="rounded-xl border border-border bg-canvas/60 p-3">
-          <button
-            id="toggleVotingSectionBtn"
-            type="button"
-            class="w-full rounded-lg px-3 py-2.5 text-left text-ui font-semibold text-primary transition hover:bg-accent-soft"
-          >
-            Toggle Voting
-          </button>
-          <div id="toggleVotingSection" class="mt-3 hidden space-y-3">
-            <p id="votingStatusText" class="hidden text-ui text-ink-muted">
-              Voting in progress. View voting activity below.
-            </p>
-            <button
-              id="toggleVotingBtn"
-              type="button"
-              class="min-h-11 w-full rounded-lg bg-accent px-4 py-2 text-center text-ui font-semibold text-white transition hover:bg-accent-hover"
-            >
-              Start Voting
-            </button>
-          </div>
-        </div>
-
-        <div id="pollResultsSection" class="space-y-2 text-center">
-          <button
-            id="openPollModalBtn"
-            type="button"
-            class="min-h-11 w-full rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
-          >
-            Add Paper-Based Votes
-          </button>
-        </div>
-      </aside>
-    </div>
-
     <!-- Voting Activity — existing live tallies + history (IDs unchanged) -->
-    <div data-admin-panel="activity" class="hidden">
+    <div data-admin-panel="activity" class="hidden space-y-6">
+      <div id="pollResultsSection" class="flex justify-end">
+        <button
+          id="openPollModalBtn"
+          type="button"
+          class="min-h-11 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
+        >
+          Add Paper-Based Votes
+        </button>
+      </div>
+
       <div class="flex flex-col gap-6 lg:flex-row">
         <section class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm lg:w-2/3 sm:p-6">
           <h2 class="text-center text-title font-bold text-primary">Voting Activity</h2>
@@ -272,10 +240,33 @@
             <button
               type="submit"
               id="addVoterBtn"
-              class="min-h-11 rounded-lg bg-accent px-4 py-2 text-ui font-semibold text-white transition hover:bg-accent-hover sm:col-span-2"
+              class="min-h-11 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover sm:col-span-2"
             >Add voter</button>
           </form>
           <p id="addVoterStatus" class="text-center text-caption"></p>
+        </section>
+
+        <section class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6">
+          <h2 class="text-center text-title font-bold text-primary">Upload voter list</h2>
+          <p class="text-center text-caption text-ink-muted">Bulk import from CSV. Columns: phone_number, account_number.</p>
+
+          <button
+            id="toggleUploadCSV"
+            type="button"
+            class="w-full rounded-lg border border-border px-3 py-2.5 text-left text-ui font-semibold text-primary transition hover:bg-accent-soft"
+          >
+            Upload Voter Data
+          </button>
+
+          <div id="uploadCSVSection" class="space-y-3">
+            <input type="file" accept=".csv" class="w-full rounded-lg border border-border bg-surface p-2 text-caption" required />
+            <button
+              type="submit"
+              class="min-h-11 w-full rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
+            >
+              Upload CSV
+            </button>
+          </div>
         </section>
       </div>
     </div>
@@ -390,7 +381,7 @@
           <button
             id="submitPollBtn"
             type="button"
-            class="min-h-11 rounded-lg bg-accent px-4 py-2 text-ui font-semibold text-white transition hover:bg-accent-hover"
+            class="min-h-11 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
           >Submit</button>
         </div>
       </div>
