@@ -1027,3 +1027,467 @@ if (uploadBtn){
     }
   });
 }
+
+
+// ====================================== ADMIN TABS + NEW TOOLS ======================================
+
+const ADMIN_TAB_KEY = 'adminActiveTab';
+const ADMIN_TAB_IDS = ['setup', 'control', 'activity', 'voters', 'results', 'emergency'];
+const TAB_IDLE =
+  'admin-tab min-h-11 rounded-lg px-3 py-2 text-ui font-semibold text-ink-muted transition hover:bg-accent-soft hover:text-primary';
+const TAB_ACTIVE =
+  'admin-tab min-h-11 rounded-lg bg-accent-soft px-3 py-2 text-ui font-semibold text-primary';
+const TAB_EMERGENCY_IDLE =
+  'admin-tab admin-tab-emergency min-h-11 rounded-lg px-3 py-2 text-ui font-semibold text-warning transition hover:bg-warning-soft';
+const TAB_EMERGENCY_ACTIVE =
+  'admin-tab admin-tab-emergency min-h-11 rounded-lg bg-warning-soft px-3 py-2 text-ui font-semibold text-error';
+
+let currentAdminTab = 'setup';
+
+function showAdminTab(tabId) {
+  if (!ADMIN_TAB_IDS.includes(tabId)) tabId = 'setup';
+  currentAdminTab = tabId;
+
+  document.querySelectorAll('[data-admin-panel]').forEach((panel) => {
+    panel.classList.toggle('hidden', panel.dataset.adminPanel !== tabId);
+  });
+
+  document.querySelectorAll('[data-admin-tab]').forEach((btn) => {
+    const isActive = btn.dataset.adminTab === tabId;
+    const isEmergency = btn.dataset.adminTab === 'emergency';
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    if (isEmergency) {
+      btn.className = isActive ? TAB_EMERGENCY_ACTIVE : TAB_EMERGENCY_IDLE;
+    } else {
+      btn.className = isActive ? TAB_ACTIVE : TAB_IDLE;
+    }
+  });
+
+  try {
+    sessionStorage.setItem(ADMIN_TAB_KEY, tabId);
+  } catch (_) { /* ignore */ }
+
+  if (tabId === 'results') {
+    loadResultsDashboard();
+  }
+}
+
+const adminTabButtons = document.querySelectorAll('[data-admin-tab]');
+if (adminTabButtons.length) {
+  let initialTab = 'setup';
+  try {
+    const stored = sessionStorage.getItem(ADMIN_TAB_KEY);
+    if (ADMIN_TAB_IDS.includes(stored)) initialTab = stored;
+  } catch (_) { /* ignore */ }
+
+  showAdminTab(initialTab);
+
+  adminTabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => showAdminTab(btn.dataset.adminTab));
+  });
+
+  setInterval(() => {
+    if (currentAdminTab === 'results') loadResultsDashboard();
+  }, 5000);
+}
+
+// ----- Voter Management -----
+
+const voterSearchForm = document.getElementById('voterSearchForm');
+const voterSearchInput = document.getElementById('voterSearchInput');
+const voterSearchResults = document.getElementById('voterSearchResults');
+const voterSearchStatus = document.getElementById('voterSearchStatus');
+const addVoterForm = document.getElementById('addVoterForm');
+const addVoterStatus = document.getElementById('addVoterStatus');
+
+function setVoterSearchStatus(message, kind = 'muted') {
+  if (!voterSearchStatus) return;
+  voterSearchStatus.textContent = message;
+  voterSearchStatus.className =
+    kind === 'error'
+      ? 'text-center text-caption text-error'
+      : kind === 'success'
+        ? 'text-center text-caption text-success'
+        : 'text-center text-caption text-ink-muted';
+}
+
+function setAddVoterStatus(message, kind = 'muted') {
+  if (!addVoterStatus) return;
+  addVoterStatus.textContent = message;
+  addVoterStatus.className =
+    kind === 'error'
+      ? 'text-center text-caption text-error'
+      : kind === 'success'
+        ? 'text-center text-caption text-success'
+        : 'text-center text-caption text-ink-muted';
+}
+
+function votedBadge(hasVoted) {
+  const span = document.createElement('span');
+  if (hasVoted) {
+    span.className = 'rounded-md bg-success-soft px-2 py-0.5 text-caption font-semibold text-success';
+    span.textContent = 'Voted';
+  } else {
+    span.className = 'rounded-md bg-canvas px-2 py-0.5 text-caption font-semibold text-ink-muted';
+    span.textContent = 'Not voted';
+  }
+  return span;
+}
+
+function renderVoterRow(voter) {
+  const tr = document.createElement('tr');
+  tr.className = 'border-b border-border/70';
+  tr.dataset.voterId = String(voter.id);
+
+  const phoneTd = document.createElement('td');
+  phoneTd.className = 'px-2 py-2 font-mono text-caption';
+  phoneTd.textContent = voter.phone_number;
+
+  const accountTd = document.createElement('td');
+  accountTd.className = 'px-2 py-2 font-mono text-caption';
+  accountTd.textContent = voter.account_number;
+
+  const statusTd = document.createElement('td');
+  statusTd.className = 'px-2 py-2';
+  statusTd.appendChild(votedBadge(voter.has_voted));
+
+  const actionsTd = document.createElement('td');
+  actionsTd.className = 'px-2 py-2 text-right';
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'text-caption font-semibold text-primary hover:underline';
+  editBtn.textContent = 'Edit';
+  editBtn.addEventListener('click', () => startVoterEdit(tr, voter));
+  actionsTd.appendChild(editBtn);
+
+  tr.append(phoneTd, accountTd, statusTd, actionsTd);
+  return tr;
+}
+
+function startVoterEdit(tr, voter) {
+  tr.innerHTML = '';
+
+  const phoneTd = document.createElement('td');
+  phoneTd.className = 'px-2 py-2';
+  const phoneInputEl = document.createElement('input');
+  phoneInputEl.type = 'text';
+  phoneInputEl.value = voter.phone_number;
+  phoneInputEl.className = 'min-h-10 w-full rounded-lg border border-border px-2 py-1 text-caption';
+  phoneTd.appendChild(phoneInputEl);
+
+  const accountTd = document.createElement('td');
+  accountTd.className = 'px-2 py-2';
+  const accountInputEl = document.createElement('input');
+  accountInputEl.type = 'text';
+  accountInputEl.value = voter.account_number;
+  accountInputEl.className = 'min-h-10 w-full rounded-lg border border-border px-2 py-1 text-caption';
+  accountTd.appendChild(accountInputEl);
+
+  const statusTd = document.createElement('td');
+  statusTd.className = 'px-2 py-2';
+  statusTd.appendChild(votedBadge(voter.has_voted));
+
+  const actionsTd = document.createElement('td');
+  actionsTd.className = 'px-2 py-2 text-right';
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'mr-2 text-caption font-semibold text-accent hover:underline';
+  saveBtn.textContent = 'Save';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'text-caption font-semibold text-ink-muted hover:underline';
+  cancelBtn.textContent = 'Cancel';
+
+  saveBtn.addEventListener('click', async () => {
+    const phone_number = phoneInputEl.value.trim();
+    const account_number = accountInputEl.value.trim();
+    if (!phone_number || !account_number) {
+      setVoterSearchStatus('Phone and account number are required.', 'error');
+      return;
+    }
+
+    saveBtn.disabled = true;
+    try {
+      const res = await apiFetch(`/admin/voters/${voter.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number, account_number }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setVoterSearchStatus(data.message || 'Could not update voter.', 'error');
+        saveBtn.disabled = false;
+        return;
+      }
+      setVoterSearchStatus('Voter updated.', 'success');
+      tr.replaceWith(renderVoterRow(data.voter));
+    } catch (err) {
+      console.error('Error updating voter:', err);
+      setVoterSearchStatus('Network error while updating voter.', 'error');
+      saveBtn.disabled = false;
+    }
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    tr.replaceWith(renderVoterRow(voter));
+  });
+
+  actionsTd.append(saveBtn, cancelBtn);
+  tr.append(phoneTd, accountTd, statusTd, actionsTd);
+  phoneInputEl.focus();
+}
+
+if (voterSearchForm && voterSearchResults) {
+  voterSearchForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const query = (voterSearchInput?.value || '').trim();
+    if (!query) {
+      setVoterSearchStatus('Enter a phone or account number to search.', 'error');
+      return;
+    }
+
+    setVoterSearchStatus('Searching…');
+    voterSearchResults.innerHTML = '';
+
+    try {
+      const res = await apiFetch(`/admin/voters/search?query=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setVoterSearchStatus(data.message || 'Search failed.', 'error');
+        return;
+      }
+
+      if (!data.voters.length) {
+        setVoterSearchStatus('No matching voters.', 'muted');
+        return;
+      }
+
+      data.voters.forEach((voter) => {
+        voterSearchResults.appendChild(renderVoterRow(voter));
+      });
+
+      const suffix = data.voters.length === 50 ? ' (showing first 50)' : '';
+      setVoterSearchStatus(`${data.voters.length} result${data.voters.length === 1 ? '' : 's'}${suffix}.`);
+    } catch (err) {
+      console.error('Error searching voters:', err);
+      setVoterSearchStatus('Network error while searching.', 'error');
+    }
+  });
+}
+
+if (addVoterForm) {
+  addVoterForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const phone_number = document.getElementById('addVoterPhone')?.value.trim();
+    const account_number = document.getElementById('addVoterAccount')?.value.trim();
+
+    if (!phone_number || !account_number) {
+      setAddVoterStatus('Phone number and account number are required.', 'error');
+      return;
+    }
+
+    const addBtn = document.getElementById('addVoterBtn');
+    if (addBtn) addBtn.disabled = true;
+    setAddVoterStatus('Adding voter…');
+
+    try {
+      const res = await apiFetch('/admin/voters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number, account_number }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAddVoterStatus(data.message || 'Could not add voter.', 'error');
+        return;
+      }
+
+      document.getElementById('addVoterPhone').value = '';
+      document.getElementById('addVoterAccount').value = '';
+      setAddVoterStatus(
+        `Added voter ${data.voter.phone_number} / ${data.voter.account_number}.`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error adding voter:', err);
+      setAddVoterStatus('Network error while adding voter.', 'error');
+    } finally {
+      if (addBtn) addBtn.disabled = false;
+    }
+  });
+}
+
+// ----- Results Dashboard (CSS bars, existing APIs) -----
+
+function renderResultsCandidateBars(candidates) {
+  const maxVotes = Math.max(1, ...candidates.map((c) => Number(c.vote_count) || 0));
+  return candidates.map((c) => {
+    const count = Number(c.vote_count) || 0;
+    const barPercent = Math.round((count / maxVotes) * 100);
+    return `
+      <div class="space-y-1">
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="font-medium text-ink">${c.name}</span>
+          <span class="shrink-0 text-caption font-semibold text-primary">${count} vote${count === 1 ? '' : 's'}</span>
+        </div>
+        <div class="h-2.5 w-full overflow-hidden rounded-full bg-border/60">
+          <div class="h-2.5 rounded-full bg-primary transition-all duration-300" style="width: ${barPercent}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderResultsCard({ title, badge, badgeClass, turnoutHtml, candidates }) {
+  const empty = !candidates || candidates.length === 0;
+  return `
+    <article class="rounded-xl border border-border bg-canvas/50 p-4 space-y-3">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="text-body font-bold text-primary">${title}</h3>
+        <span class="rounded-md px-2 py-0.5 text-caption font-semibold ${badgeClass}">${badge}</span>
+      </div>
+      ${turnoutHtml || ''}
+      <div class="space-y-3 text-ui">
+        ${empty ? '<p class="text-caption italic text-ink-muted">No candidates for this position.</p>' : renderResultsCandidateBars(candidates)}
+      </div>
+    </article>
+  `;
+}
+
+async function loadResultsDashboard() {
+  const container = document.getElementById('resultsDashboard');
+  if (!container) return;
+
+  try {
+    const [historyRes, activeRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/voting/history`),
+      fetch(`${API_BASE_URL}/voting/get-active`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voterId }),
+      }),
+    ]);
+
+    const historyData = await historyRes.json();
+    const activeData = await activeRes.json();
+
+    const cards = [];
+
+    if (activeData.success && activeData.position) {
+      const statsRes = await fetch(
+        `${API_BASE_URL}/voting/live-stats?position_name=${encodeURIComponent(activeData.position)}`
+      );
+      const stats = await statsRes.json();
+      if (stats.success) {
+        const percent = stats.totalVoters === 0
+          ? 0
+          : Math.round((stats.votersWhoVoted / stats.totalVoters) * 100);
+        const turnoutHtml = `
+          <div>
+            <div class="mb-1 flex items-baseline justify-between gap-2">
+              <span class="text-caption font-semibold text-ink">Turnout</span>
+              <span class="text-caption text-ink-muted">${stats.votersWhoVoted} of ${stats.totalVoters}</span>
+            </div>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-border/60">
+              <div class="h-2 rounded-full bg-accent" style="width: ${percent}%"></div>
+            </div>
+          </div>
+        `;
+        cards.push(renderResultsCard({
+          title: activeData.position,
+          badge: 'Live',
+          badgeClass: 'bg-accent-soft text-accent',
+          turnoutHtml,
+          candidates: stats.candidates,
+        }));
+      }
+    }
+
+    if (historyData.success && Array.isArray(historyData.history)) {
+      historyData.history.forEach((item) => {
+        cards.push(renderResultsCard({
+          title: item.name,
+          badge: item.paper_results_added ? 'Complete · paper added' : 'Complete',
+          badgeClass: 'bg-success-soft text-success',
+          candidates: item.candidates,
+        }));
+      });
+    }
+
+    if (cards.length === 0) {
+      container.innerHTML = '<p class="text-center text-ui italic text-ink-muted">No active or completed races yet.</p>';
+      return;
+    }
+
+    container.innerHTML = cards.join('');
+  } catch (err) {
+    console.error('Error loading results dashboard:', err);
+    container.innerHTML = '<p class="text-center text-ui text-error">Unable to load results.</p>';
+  }
+}
+
+// ----- Emergency: full election reset -----
+
+const fullResetConfirmInput = document.getElementById('fullResetConfirmInput');
+const fullResetBtn = document.getElementById('fullResetBtn');
+const fullResetStatus = document.getElementById('fullResetStatus');
+const RESET_PHRASE = 'RESET';
+
+function setFullResetStatus(message, kind = 'muted') {
+  if (!fullResetStatus) return;
+  fullResetStatus.textContent = message;
+  fullResetStatus.className =
+    kind === 'error'
+      ? 'mt-3 text-ui text-error'
+      : kind === 'success'
+        ? 'mt-3 text-ui text-success'
+        : 'mt-3 text-ui text-ink-muted';
+}
+
+function syncFullResetButton() {
+  if (!fullResetBtn || !fullResetConfirmInput) return;
+  fullResetBtn.disabled = fullResetConfirmInput.value !== RESET_PHRASE;
+}
+
+if (fullResetConfirmInput && fullResetBtn) {
+  fullResetConfirmInput.addEventListener('input', () => {
+    syncFullResetButton();
+    setFullResetStatus('');
+  });
+
+  fullResetBtn.addEventListener('click', async () => {
+    if (fullResetConfirmInput.value !== RESET_PHRASE) return;
+
+    fullResetBtn.disabled = true;
+    setFullResetStatus('Resetting election…');
+
+    try {
+      const res = await apiFetch('/admin/election/full-reset', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setFullResetStatus(data.message || 'Reset failed. No changes were applied.', 'error');
+        syncFullResetButton();
+        return;
+      }
+
+      fullResetConfirmInput.value = '';
+      syncFullResetButton();
+      setFullResetStatus(
+        `Reset complete. ${data.positionsReset} position(s), ${data.candidatesZeroed} candidate(s) zeroed, ${data.votersReset} voter(s) cleared.`,
+        'success'
+      );
+
+      loadVotingHistory();
+      updateToggleVotingButtonState();
+      loadActiveVoting();
+      if (positionSelect?.value && positionSelect.value !== 'Select') {
+        loadLiveVotingStats(positionSelect.value);
+      }
+      loadResultsDashboard();
+    } catch (err) {
+      console.error('Error running full election reset:', err);
+      setFullResetStatus('Network error. Reset was not confirmed — check the server before retrying.', 'error');
+      syncFullResetButton();
+    }
+  });
+}

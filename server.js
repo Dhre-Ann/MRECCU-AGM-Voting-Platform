@@ -8,6 +8,7 @@ const votersRouter = require('./routes/voters');
 const candidatesRouter = require('./routes/candidates');
 const positionsRouter = require('./routes/positions');
 const votingRouter = require('./routes/voting');
+const adminRouter = require('./routes/admin');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -48,6 +49,7 @@ app.use(votersRouter);
 app.use(candidatesRouter);
 app.use(positionsRouter);
 app.use('/voting', votingRouter);
+app.use('/admin', adminRouter);
 
 // Start the server
 const server = app.listen(port, () => {
