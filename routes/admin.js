@@ -203,4 +203,95 @@ router.post('/election/full-reset', async (req, res) => {
   }
 });
 
+const ACTIVE_ONLY_RESET_MESSAGE =
+  'Only the currently active race can be reset. has_voted is global, so a completed or idle race cannot be reset without letting voters re-vote in another race.';
+
+// POST /admin/election/reset-position/:id
+// Active race only. One transaction. Other positions untouched.
+router.post('/election/reset-position/:id', async (req, res) => {
+  const positionId = parseInt(req.params.id, 10);
+  if (Number.isNaN(positionId)) {
+    return res.status(400).json({ success: false, message: 'Invalid position id' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const existing = await client.query(
+      'SELECT id, name, voting_active FROM positions WHERE id = $1',
+      [positionId]
+    );
+
+    if (existing.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Position not found' });
+    }
+
+    if (!existing.rows[0].voting_active) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ success: false, message: ACTIVE_ONLY_RESET_MESSAGE });
+    }
+
+    const locked = await client.query(
+      `UPDATE positions
+       SET voting_active = FALSE,
+           voting_complete = FALSE,
+           paper_results_added = FALSE
+       WHERE id = $1 AND voting_active = TRUE
+       RETURNING id, name`,
+      [positionId]
+    );
+
+    if (locked.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ success: false, message: ACTIVE_ONLY_RESET_MESSAGE });
+    }
+
+    const candidates = await client.query(
+      'UPDATE candidates SET vote_count = 0 WHERE position_id = $1 RETURNING id',
+      [positionId]
+    );
+
+    const voters = await client.query(
+      'UPDATE voters SET has_voted = FALSE RETURNING id'
+    );
+
+    await client.query('COMMIT');
+
+    const positionName = locked.rows[0].name;
+    const summary = {
+      positionId,
+      positionName,
+      candidatesZeroed: candidates.rowCount,
+      votersReset: voters.rowCount,
+    };
+
+    console.log(
+      `[${new Date().toISOString()}] Single-position reset: "${positionName}" (id=${positionId}): ` +
+      `${summary.candidatesZeroed} candidate(s) (vote_count = 0), ` +
+      `${summary.votersReset} voter(s) (has_voted = false). Other positions untouched.`
+    );
+
+    return res.json({
+      success: true,
+      message: `Race "${positionName}" has been reset.`,
+      ...summary,
+    });
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('Error rolling back single-position reset:', rollbackErr);
+    }
+    console.error('Error during single-position reset:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Reset failed. No changes were applied.',
+    });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

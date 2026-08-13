@@ -1070,6 +1070,9 @@ function showAdminTab(tabId) {
   if (tabId === 'results') {
     loadResultsDashboard();
   }
+  if (tabId === 'emergency') {
+    refreshPositionResetCard();
+  }
 }
 
 const adminTabButtons = document.querySelectorAll('[data-admin-tab]');
@@ -1088,6 +1091,7 @@ if (adminTabButtons.length) {
 
   setInterval(() => {
     if (currentAdminTab === 'results') loadResultsDashboard();
+    if (currentAdminTab === 'emergency') refreshPositionResetCard();
   }, 5000);
 }
 
@@ -1317,41 +1321,164 @@ if (addVoterForm) {
   });
 }
 
-// ----- Results Dashboard (CSS bars, existing APIs) -----
+// ----- Results Dashboard (CSS bars + conic-gradient donut) -----
 
-function renderResultsCandidateBars(candidates) {
-  const maxVotes = Math.max(1, ...candidates.map((c) => Number(c.vote_count) || 0));
-  return candidates.map((c) => {
+// Brand/neutral first. success + warning only as overflow (7th/8th+).
+const RESULT_SLICE_COLORS = [
+  '#343075', // primary
+  '#28ace3', // accent
+  '#5f5c92', // primary-muted
+  '#fbdf13', // highlight
+  '#8a87af', // border-strong
+  '#9dd5f0', // light4
+  '#1f7a4c', // success — overflow only
+  '#9a7300', // warning — overflow only
+];
+
+function resultSliceColor(index) {
+  return RESULT_SLICE_COLORS[index % RESULT_SLICE_COLORS.length];
+}
+
+function sumVoteCounts(candidates) {
+  return (candidates || []).reduce((sum, c) => sum + (Number(c.vote_count) || 0), 0);
+}
+
+function decorateResultCandidates(candidates, { isLive }) {
+  const list = candidates || [];
+  const totalCast = sumVoteCounts(list);
+  const maxVotes = Math.max(0, ...list.map((c) => Number(c.vote_count) || 0));
+  const leaders = list.filter((c) => (Number(c.vote_count) || 0) === maxVotes && maxVotes > 0);
+  const leaderLabel = !isLive || maxVotes === 0
+    ? null
+    : (leaders.length === 1 ? 'Leading' : 'Tied');
+
+  return list.map((c, i) => {
     const count = Number(c.vote_count) || 0;
-    const barPercent = Math.round((count / maxVotes) * 100);
+    const sharePct = totalCast === 0 ? 0 : (count / totalCast) * 100;
+    const isLeader = Boolean(leaderLabel && count === maxVotes);
+    return {
+      name: c.name,
+      count,
+      color: resultSliceColor(i),
+      sharePct,
+      barPct: maxVotes === 0 ? 0 : Math.round((count / maxVotes) * 100),
+      leaderLabel: isLeader ? leaderLabel : null,
+    };
+  });
+}
+
+function buildConicGradient(decorated) {
+  const totalCast = decorated.reduce((sum, c) => sum + c.count, 0);
+  if (totalCast === 0 || decorated.length === 0) {
+    return 'conic-gradient(#cfcddc 0% 100%)';
+  }
+
+  let cursor = 0;
+  const stops = decorated.map((c, i) => {
+    const start = cursor;
+    cursor += c.sharePct;
+    const end = i === decorated.length - 1 ? 100 : cursor;
+    return `${c.color} ${start}% ${end}%`;
+  });
+  return `conic-gradient(${stops.join(', ')})`;
+}
+
+function renderResultsCandidateBars(decorated) {
+  return decorated.map((c) => {
+    const badge = c.leaderLabel
+      ? `<span class="rounded-md bg-highlight-soft px-1.5 py-0.5 text-caption font-semibold text-ink">${c.leaderLabel}</span>`
+      : '';
+    const shareLabel = `${Math.round(c.sharePct)}%`;
     return `
       <div class="space-y-1">
-        <div class="flex items-baseline justify-between gap-2">
-          <span class="font-medium text-ink">${c.name}</span>
-          <span class="shrink-0 text-caption font-semibold text-primary">${count} vote${count === 1 ? '' : 's'}</span>
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <span class="flex flex-wrap items-center gap-2 font-medium text-ink">
+            ${c.name}
+            ${badge}
+          </span>
+          <span class="shrink-0 text-caption font-semibold text-primary">${c.count} vote${c.count === 1 ? '' : 's'} · ${shareLabel}</span>
         </div>
         <div class="h-2.5 w-full overflow-hidden rounded-full bg-border/60">
-          <div class="h-2.5 rounded-full bg-primary transition-all duration-300" style="width: ${barPercent}%"></div>
+          <div class="h-2.5 rounded-full transition-all duration-300" style="width: ${c.barPct}%; background-color: ${c.color}"></div>
         </div>
       </div>
     `;
   }).join('');
 }
 
-function renderResultsCard({ title, badge, badgeClass, turnoutHtml, candidates }) {
-  const empty = !candidates || candidates.length === 0;
+function renderResultsDonut(decorated) {
+  const gradient = buildConicGradient(decorated);
+  const legend = decorated.map((c) => `
+    <li class="flex items-center gap-2 text-caption text-ink">
+      <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: ${c.color}"></span>
+      <span>${c.name}</span>
+    </li>
+  `).join('');
+
   return `
-    <article class="rounded-xl border border-border bg-canvas/50 p-4 space-y-3">
+    <div class="flex flex-col items-center gap-3 sm:w-44">
+      <div class="relative h-36 w-36 shrink-0">
+        <div class="h-full w-full rounded-full" style="background: ${gradient}"></div>
+        <div class="absolute inset-[22%] rounded-full bg-canvas"></div>
+      </div>
+      <ul class="w-full space-y-1">${legend}</ul>
+    </div>
+  `;
+}
+
+function renderLiveStatRow(votersWhoVoted, totalVoters) {
+  const percent = totalVoters === 0 ? 0 : Math.round((votersWhoVoted / totalVoters) * 100);
+  return `
+    <div>
+      <div class="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+        <span class="text-caption font-semibold text-ink">Turnout</span>
+        <span class="text-caption text-ink-muted">${votersWhoVoted} / ${totalVoters} registered voters (${percent}%)</span>
+      </div>
+      <div class="h-2 w-full overflow-hidden rounded-full bg-border/60">
+        <div class="h-2 rounded-full bg-accent" style="width: ${percent}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCompletedStatRow(votesRecorded, totalVoters) {
+  const percent = totalVoters === 0 ? 0 : Math.round((votesRecorded / totalVoters) * 100);
+  return `
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <span class="text-caption font-semibold text-ink">Votes recorded / registered voters</span>
+      <span class="text-caption text-ink-muted">${votesRecorded} / ${totalVoters}${totalVoters === 0 ? '' : ` (${percent}%)`}</span>
+    </div>
+  `;
+}
+
+function renderResultsCard({ title, badge, badgeClass, statHtml, candidates, isLive }) {
+  const empty = !candidates || candidates.length === 0;
+  const decorated = decorateResultCandidates(candidates, { isLive });
+  return `
+    <article class="rounded-xl border border-border bg-canvas/50 p-4 space-y-4">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h3 class="text-body font-bold text-primary">${title}</h3>
         <span class="rounded-md px-2 py-0.5 text-caption font-semibold ${badgeClass}">${badge}</span>
       </div>
-      ${turnoutHtml || ''}
-      <div class="space-y-3 text-ui">
-        ${empty ? '<p class="text-caption italic text-ink-muted">No candidates for this position.</p>' : renderResultsCandidateBars(candidates)}
-      </div>
+      ${statHtml || ''}
+      ${empty
+        ? '<p class="text-caption italic text-ink-muted">No candidates for this position.</p>'
+        : `<div class="flex flex-col gap-5 sm:flex-row sm:items-start">
+            <div class="min-w-0 flex-1 space-y-3 text-ui">${renderResultsCandidateBars(decorated)}</div>
+            ${renderResultsDonut(decorated)}
+          </div>`}
     </article>
   `;
+}
+
+async function fetchRegisteredVoterCount(positionName) {
+  if (!positionName) return 0;
+  const statsRes = await fetch(
+    `${API_BASE_URL}/voting/live-stats?position_name=${encodeURIComponent(positionName)}`
+  );
+  const stats = await statsRes.json();
+  if (!stats.success) return 0;
+  return Number(stats.totalVoters) || 0;
 }
 
 async function loadResultsDashboard() {
@@ -1370,49 +1497,44 @@ async function loadResultsDashboard() {
 
     const historyData = await historyRes.json();
     const activeData = await activeRes.json();
+    const history = historyData.success && Array.isArray(historyData.history) ? historyData.history : [];
 
     const cards = [];
+    let totalVoters = 0;
+    let liveStats = null;
 
     if (activeData.success && activeData.position) {
       const statsRes = await fetch(
         `${API_BASE_URL}/voting/live-stats?position_name=${encodeURIComponent(activeData.position)}`
       );
-      const stats = await statsRes.json();
-      if (stats.success) {
-        const percent = stats.totalVoters === 0
-          ? 0
-          : Math.round((stats.votersWhoVoted / stats.totalVoters) * 100);
-        const turnoutHtml = `
-          <div>
-            <div class="mb-1 flex items-baseline justify-between gap-2">
-              <span class="text-caption font-semibold text-ink">Turnout</span>
-              <span class="text-caption text-ink-muted">${stats.votersWhoVoted} of ${stats.totalVoters}</span>
-            </div>
-            <div class="h-2 w-full overflow-hidden rounded-full bg-border/60">
-              <div class="h-2 rounded-full bg-accent" style="width: ${percent}%"></div>
-            </div>
-          </div>
-        `;
+      liveStats = await statsRes.json();
+      if (liveStats.success) {
+        totalVoters = Number(liveStats.totalVoters) || 0;
         cards.push(renderResultsCard({
           title: activeData.position,
           badge: 'Live',
           badgeClass: 'bg-accent-soft text-accent',
-          turnoutHtml,
-          candidates: stats.candidates,
+          isLive: true,
+          statHtml: renderLiveStatRow(liveStats.votersWhoVoted, totalVoters),
+          candidates: liveStats.candidates,
         }));
       }
     }
 
-    if (historyData.success && Array.isArray(historyData.history)) {
-      historyData.history.forEach((item) => {
-        cards.push(renderResultsCard({
-          title: item.name,
-          badge: item.paper_results_added ? 'Complete · paper added' : 'Complete',
-          badgeClass: 'bg-success-soft text-success',
-          candidates: item.candidates,
-        }));
-      });
+    if (totalVoters === 0 && history.length > 0) {
+      totalVoters = await fetchRegisteredVoterCount(history[0].name);
     }
+
+    history.forEach((item) => {
+      cards.push(renderResultsCard({
+        title: item.name,
+        badge: item.paper_results_added ? 'Complete · paper added' : 'Complete',
+        badgeClass: 'bg-success-soft text-success',
+        isLive: false,
+        statHtml: renderCompletedStatRow(sumVoteCounts(item.candidates), totalVoters),
+        candidates: item.candidates,
+      }));
+    });
 
     if (cards.length === 0) {
       container.innerHTML = '<p class="text-center text-ui italic text-ink-muted">No active or completed races yet.</p>';
@@ -1484,10 +1606,140 @@ if (fullResetConfirmInput && fullResetBtn) {
         loadLiveVotingStats(positionSelect.value);
       }
       loadResultsDashboard();
+      refreshPositionResetCard();
     } catch (err) {
       console.error('Error running full election reset:', err);
       setFullResetStatus('Network error. Reset was not confirmed — check the server before retrying.', 'error');
       syncFullResetButton();
+    }
+  });
+}
+
+// ----- Emergency: single-position reset (active race only) -----
+
+const positionResetIdleMsg = document.getElementById('positionResetIdleMsg');
+const positionResetActivePanel = document.getElementById('positionResetActivePanel');
+const positionResetConfirmInput = document.getElementById('positionResetConfirmInput');
+const positionResetBtn = document.getElementById('positionResetBtn');
+const positionResetStatus = document.getElementById('positionResetStatus');
+const positionResetScopeNote = document.getElementById('positionResetScopeNote');
+
+let activePositionForReset = null; // { id, name }
+
+function setPositionResetStatus(message, kind = 'muted') {
+  if (!positionResetStatus) return;
+  positionResetStatus.textContent = message;
+  positionResetStatus.className =
+    kind === 'error'
+      ? 'mt-3 text-ui text-error'
+      : kind === 'success'
+        ? 'mt-3 text-ui text-success'
+        : 'mt-3 text-ui text-ink-muted';
+}
+
+function syncPositionResetButton() {
+  if (!positionResetBtn || !positionResetConfirmInput) return;
+  const armed = Boolean(
+    activePositionForReset &&
+    positionResetConfirmInput.value === RESET_PHRASE
+  );
+  positionResetBtn.disabled = !armed;
+}
+
+function showPositionResetIdle() {
+  activePositionForReset = null;
+  if (positionResetIdleMsg) positionResetIdleMsg.classList.remove('hidden');
+  if (positionResetActivePanel) positionResetActivePanel.classList.add('hidden');
+  if (positionResetConfirmInput) positionResetConfirmInput.value = '';
+  if (positionResetBtn) {
+    positionResetBtn.textContent = 'Reset current race only';
+    positionResetBtn.disabled = true;
+  }
+}
+
+async function refreshPositionResetCard() {
+  if (!positionResetIdleMsg || !positionResetActivePanel) return;
+
+  try {
+    const activeRes = await fetch(`${API_BASE_URL}/voting/get-active`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterId }),
+    });
+    const activeData = await activeRes.json();
+
+    if (!activeData.success || !activeData.position) {
+      showPositionResetIdle();
+      return;
+    }
+
+    const metaRes = await fetch(
+      `${API_BASE_URL}/get-position-name?name=${encodeURIComponent(activeData.position)}`
+    );
+    const meta = await metaRes.json();
+    if (!meta.success || !meta.position?.id) {
+      showPositionResetIdle();
+      return;
+    }
+
+    activePositionForReset = { id: meta.position.id, name: meta.position.name };
+    positionResetIdleMsg.classList.add('hidden');
+    positionResetActivePanel.classList.remove('hidden');
+
+    if (positionResetScopeNote) {
+      positionResetScopeNote.textContent =
+        `This will reset “${activePositionForReset.name}” only. Other races are not touched.`;
+    }
+    positionResetBtn.textContent = `Reset ${activePositionForReset.name} only`;
+    syncPositionResetButton();
+  } catch (err) {
+    console.error('Error loading active race for position reset:', err);
+    showPositionResetIdle();
+  }
+}
+
+if (positionResetConfirmInput && positionResetBtn) {
+  positionResetConfirmInput.addEventListener('input', () => {
+    syncPositionResetButton();
+    setPositionResetStatus('');
+  });
+
+  positionResetBtn.addEventListener('click', async () => {
+    if (!activePositionForReset || positionResetConfirmInput.value !== RESET_PHRASE) return;
+
+    positionResetBtn.disabled = true;
+    setPositionResetStatus(`Resetting ${activePositionForReset.name}…`);
+
+    try {
+      const res = await apiFetch(`/admin/election/reset-position/${activePositionForReset.id}`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPositionResetStatus(data.message || 'Reset failed. No changes were applied.', 'error');
+        syncPositionResetButton();
+        refreshPositionResetCard();
+        return;
+      }
+
+      positionResetConfirmInput.value = '';
+      setPositionResetStatus(
+        `Reset “${data.positionName}” only. ${data.candidatesZeroed} candidate(s) zeroed, ${data.votersReset} voter(s) cleared. Other races untouched.`,
+        'success'
+      );
+
+      loadVotingHistory();
+      updateToggleVotingButtonState();
+      loadActiveVoting();
+      if (positionSelect?.value && positionSelect.value !== 'Select') {
+        loadLiveVotingStats(positionSelect.value);
+      }
+      loadResultsDashboard();
+      refreshPositionResetCard();
+    } catch (err) {
+      console.error('Error running single-position reset:', err);
+      setPositionResetStatus('Network error. Reset was not confirmed — check the server before retrying.', 'error');
+      syncPositionResetButton();
     }
   });
 }
