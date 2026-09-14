@@ -37,13 +37,11 @@ router.post('/verify-voter', verifyVoterLimiter, async (req, res) => {
       // ✅ Detect admin credentials
       const isAdmin = phone_number === '222-1111' && account_number === '22221';
 
+      req.session.voterId = voterId;
       if (isAdmin) {
         req.session.isAdmin = true;
-        req.session.voterId = voterId;
       } else {
-        // Clear any prior admin session if a non-admin logs in on the same browser
         delete req.session.isAdmin;
-        delete req.session.voterId;
       }
 
       return res.status(200).json({ success: true, voterId, isAdmin });
@@ -54,6 +52,28 @@ router.post('/verify-voter', verifyVoterLimiter, async (req, res) => {
     console.error('Error verifying voter:', error);
     return res.status(500).json({ success: false, message: 'Database error' });
   }
+});
+
+router.post('/logout', (req, res) => {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  };
+
+  if (!req.session) {
+    res.clearCookie('mreccu.sid', cookieOptions);
+    return res.status(200).json({ success: true });
+  }
+
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error destroying session:', err);
+      return res.status(500).json({ success: false, message: 'Unable to log out' });
+    }
+    res.clearCookie('mreccu.sid', cookieOptions);
+    return res.status(200).json({ success: true });
+  });
 });
 
 const parseCSV = (filePath) => {

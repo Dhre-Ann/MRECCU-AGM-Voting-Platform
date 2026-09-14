@@ -9,7 +9,14 @@
 
 <body class="flex min-h-screen flex-col bg-canvas font-sans text-ink antialiased">
 
-  <header class="bg-primary text-secondary shadow-md">
+  <header class="relative bg-primary text-secondary shadow-md">
+    <button
+      type="button"
+      id="authSessionBtn"
+      class="absolute right-3 top-3 min-h-10 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-ui font-semibold text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-highlight/70 sm:right-4 sm:top-4 sm:px-4"
+    >
+      Log in
+    </button>
     <div class="mx-auto flex max-w-3xl flex-col items-center px-4 py-5 text-center">
       <div class="mb-3 flex w-fit items-center justify-center rounded-2xl bg-surface px-4 py-2 shadow-sm">
         <img

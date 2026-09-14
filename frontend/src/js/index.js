@@ -18,6 +18,51 @@ function apiFetch(path, options = {}) {
   });
 }
 
+function isOnPagesDir() {
+  return window.location.pathname.includes('/pages/');
+}
+
+function loginPageUrl() {
+  return isOnPagesDir() ? './login.html' : './pages/login.html';
+}
+
+function isLoggedIn() {
+  const storedId = localStorage.getItem('voterId');
+  return Boolean(storedId) && storedId !== 'null';
+}
+
+function clearClientSession() {
+  localStorage.removeItem('voterId');
+  localStorage.removeItem('isAdmin');
+}
+
+async function logoutAndRedirect() {
+  try {
+    await apiFetch('/logout', { method: 'POST' });
+  } catch (error) {
+    console.error('Logout request failed:', error);
+  }
+  clearClientSession();
+  window.location.href = loginPageUrl();
+}
+
+function bindAuthSessionButton(button, { loggedInLabel = 'Log out', loggedOutLabel = 'Log in' } = {}) {
+  if (!button) return;
+
+  const loggedIn = isLoggedIn();
+  button.textContent = loggedIn ? loggedInLabel : loggedOutLabel;
+  button.classList.remove('hidden');
+
+  button.addEventListener('click', async () => {
+    if (isLoggedIn()) {
+      button.disabled = true;
+      button.textContent = 'Signing out…';
+      await logoutAndRedirect();
+      return;
+    }
+    window.location.href = loginPageUrl();
+  });
+}
 
 // Protect admin page
 if (window.location.pathname.includes('admin.html')) {
@@ -29,17 +74,22 @@ if (window.location.pathname.includes('admin.html')) {
 
 // Variables
 const loginRedirect = document.getElementById("login-redirect-btn");
+const authSessionBtn = document.getElementById('authSessionBtn');
 const phoneInput = document.getElementById('phoneNumber');
 const accountInput = document.getElementById('accountNumber');
 const voterLoginForm = document.getElementById('voterForm');
 const resultDiv = document.getElementById('result');
 const voterId = localStorage.getItem('voterId') || "null";
 
-// login button
-if (loginRedirect) {
-  loginRedirect.addEventListener("click", () => {
-    window.location.href = "./pages/login.html";
-  });
+bindAuthSessionButton(loginRedirect, { loggedOutLabel: 'Sign in to Vote' });
+
+if (authSessionBtn) {
+  const onLoginPage = window.location.pathname.includes('login.html');
+  if (onLoginPage && !isLoggedIn()) {
+    authSessionBtn.classList.add('hidden');
+  } else {
+    bindAuthSessionButton(authSessionBtn);
+  }
 }
 
 // Phone number formatting for login
