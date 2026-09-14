@@ -31,6 +31,12 @@ function csvEscape(value) {
   return str;
 }
 
+const VOTER_FIELDS = 'id, phone_number, account_number, has_voted, first_name, last_name';
+
+function normalizeName(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 // GET /admin/voters — full register (paginated)
 router.get('/voters', async (req, res) => {
   const page = Math.max(1, parsePositiveInt(req.query.page, 1));
@@ -46,7 +52,7 @@ router.get('/voters', async (req, res) => {
         FROM voters
       `),
       pool.query(
-        `SELECT id, phone_number, account_number, has_voted
+        `SELECT ${VOTER_FIELDS}
          FROM voters
          ORDER BY id ASC
          LIMIT $1 OFFSET $2`,
@@ -84,9 +90,13 @@ router.get('/voters/search', async (req, res) => {
   try {
     const pattern = `%${escapeIlike(query)}%`;
     const result = await pool.query(
-      `SELECT id, phone_number, account_number, has_voted
+      `SELECT ${VOTER_FIELDS}
        FROM voters
-       WHERE phone_number ILIKE $1 OR account_number ILIKE $1
+       WHERE phone_number ILIKE $1
+          OR account_number ILIKE $1
+          OR first_name ILIKE $1
+          OR last_name ILIKE $1
+          OR TRIM(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) ILIKE $1
        ORDER BY id ASC
        LIMIT 50`,
       [pattern]
@@ -103,17 +113,19 @@ router.get('/voters/search', async (req, res) => {
 router.get('/voters/export', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT phone_number, account_number, has_voted
+      `SELECT phone_number, account_number, has_voted, first_name, last_name
        FROM voters
        ORDER BY id ASC`
     );
 
-    const header = 'phone_number,account_number,has_voted';
+    const header = 'phone_number,account_number,has_voted,first_name,last_name';
     const lines = result.rows.map((row) =>
       [
         csvEscape(row.phone_number),
         csvEscape(row.account_number),
         row.has_voted ? 'true' : 'false',
+        csvEscape(row.first_name),
+        csvEscape(row.last_name),
       ].join(',')
     );
     const csvBody = `${header}\n${lines.join('\n')}${lines.length ? '\n' : ''}`;
@@ -135,6 +147,8 @@ router.get('/voters/export', async (req, res) => {
 router.post('/voters', async (req, res) => {
   const phone_number = normalizeCredential(req.body.phone_number);
   const account_number = normalizeCredential(req.body.account_number);
+  const first_name = normalizeName(req.body.first_name);
+  const last_name = normalizeName(req.body.last_name);
 
   if (!phone_number || !account_number) {
     return res.status(400).json({ success: false, message: 'Phone number and account number are required' });
@@ -154,10 +168,10 @@ router.post('/voters', async (req, res) => {
     }
 
     const inserted = await pool.query(
-      `INSERT INTO voters (phone_number, account_number)
-       VALUES ($1, $2)
-       RETURNING id, phone_number, account_number, has_voted`,
-      [phone_number, account_number]
+      `INSERT INTO voters (phone_number, account_number, first_name, last_name)
+       VALUES ($1, $2, $3, $4)
+       RETURNING ${VOTER_FIELDS}`,
+      [phone_number, account_number, first_name || null, last_name || null]
     );
 
     return res.status(201).json({ success: true, voter: inserted.rows[0] });
@@ -176,13 +190,17 @@ router.patch('/voters/:id', async (req, res) => {
 
   const hasPhone = Object.prototype.hasOwnProperty.call(req.body, 'phone_number');
   const hasAccount = Object.prototype.hasOwnProperty.call(req.body, 'account_number');
+  const hasFirst = Object.prototype.hasOwnProperty.call(req.body, 'first_name');
+  const hasLast = Object.prototype.hasOwnProperty.call(req.body, 'last_name');
 
-  if (!hasPhone && !hasAccount) {
-    return res.status(400).json({ success: false, message: 'Provide phone_number and/or account_number' });
+  if (!hasPhone && !hasAccount && !hasFirst && !hasLast) {
+    return res.status(400).json({ success: false, message: 'Provide at least one voter field to update' });
   }
 
   const phone_number = hasPhone ? normalizeCredential(req.body.phone_number) : null;
   const account_number = hasAccount ? normalizeCredential(req.body.account_number) : null;
+  const first_name = hasFirst ? normalizeName(req.body.first_name) : null;
+  const last_name = hasLast ? normalizeName(req.body.last_name) : null;
 
   if (hasPhone && !phone_number) {
     return res.status(400).json({ success: false, message: 'Phone number cannot be empty' });
@@ -193,7 +211,7 @@ router.patch('/voters/:id', async (req, res) => {
 
   try {
     const current = await pool.query(
-      'SELECT id, phone_number, account_number, has_voted FROM voters WHERE id = $1',
+      `SELECT ${VOTER_FIELDS} FROM voters WHERE id = $1`,
       [voterId]
     );
 
@@ -203,6 +221,8 @@ router.patch('/voters/:id', async (req, res) => {
 
     const nextPhone = hasPhone ? phone_number : current.rows[0].phone_number;
     const nextAccount = hasAccount ? account_number : current.rows[0].account_number;
+    const nextFirst = hasFirst ? (first_name || null) : current.rows[0].first_name;
+    const nextLast = hasLast ? (last_name || null) : current.rows[0].last_name;
 
     const duplicate = await pool.query(
       'SELECT id FROM voters WHERE phone_number = $1 AND account_number = $2 AND id <> $3',
@@ -218,10 +238,10 @@ router.patch('/voters/:id', async (req, res) => {
 
     const updated = await pool.query(
       `UPDATE voters
-       SET phone_number = $1, account_number = $2
-       WHERE id = $3
-       RETURNING id, phone_number, account_number, has_voted`,
-      [nextPhone, nextAccount, voterId]
+       SET phone_number = $1, account_number = $2, first_name = $3, last_name = $4
+       WHERE id = $5
+       RETURNING ${VOTER_FIELDS}`,
+      [nextPhone, nextAccount, nextFirst, nextLast, voterId]
     );
 
     return res.json({ success: true, voter: updated.rows[0] });

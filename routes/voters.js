@@ -64,7 +64,12 @@ const parseCSV = (filePath) => {
       .pipe(csv.parse({ columns: true, trim: true }))
       .on('data', (row) => {
         if (row.phone_number && row.account_number) {
-          results.push([row.phone_number, row.account_number]);
+          results.push([
+            row.phone_number,
+            row.account_number,
+            row.first_name || '',
+            row.last_name || '',
+          ]);
         }
       })
       .on('end', () => resolve(results))
@@ -80,10 +85,12 @@ router.post('/upload-csv', requireAdmin, upload.single('csv'), async (req, res) 
   try {
     const results = await parseCSV(req.file.path);
 
-    for (const [phone, account] of results) {
+    for (const [phone, account, firstName, lastName] of results) {
       await pool.query(
-        'INSERT INTO voters (phone_number, account_number) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [phone, account]
+        `INSERT INTO voters (phone_number, account_number, first_name, last_name)
+         VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''))
+         ON CONFLICT DO NOTHING`,
+        [phone, account, firstName, lastName]
       );
     }
 

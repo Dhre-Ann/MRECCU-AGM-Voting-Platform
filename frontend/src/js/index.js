@@ -1462,6 +1462,10 @@ async function loadAllVoters(page = 1, { silent = false } = {}) {
   }
 }
 
+function displayName(value) {
+  return value == null || value === '' ? '—' : value;
+}
+
 function renderVoterRow(voter) {
   const tr = document.createElement('tr');
   tr.className = 'border-b border-border/70';
@@ -1479,6 +1483,14 @@ function renderVoterRow(voter) {
   statusTd.className = 'px-2 py-2';
   statusTd.appendChild(votedBadge(voter.has_voted));
 
+  const firstTd = document.createElement('td');
+  firstTd.className = 'px-2 py-2 text-caption';
+  firstTd.textContent = displayName(voter.first_name);
+
+  const lastTd = document.createElement('td');
+  lastTd.className = 'px-2 py-2 text-caption';
+  lastTd.textContent = displayName(voter.last_name);
+
   const actionsTd = document.createElement('td');
   actionsTd.className = 'px-2 py-2 text-right';
   const editBtn = document.createElement('button');
@@ -1488,7 +1500,7 @@ function renderVoterRow(voter) {
   editBtn.addEventListener('click', () => startVoterEdit(tr, voter));
   actionsTd.appendChild(editBtn);
 
-  tr.append(phoneTd, accountTd, statusTd, actionsTd);
+  tr.append(phoneTd, accountTd, statusTd, firstTd, lastTd, actionsTd);
   return tr;
 }
 
@@ -1515,6 +1527,22 @@ function startVoterEdit(tr, voter) {
   statusTd.className = 'px-2 py-2';
   statusTd.appendChild(votedBadge(voter.has_voted));
 
+  const firstTd = document.createElement('td');
+  firstTd.className = 'px-2 py-2';
+  const firstInputEl = document.createElement('input');
+  firstInputEl.type = 'text';
+  firstInputEl.value = voter.first_name || '';
+  firstInputEl.className = 'min-h-10 w-full rounded-lg border border-border px-2 py-1 text-caption';
+  firstTd.appendChild(firstInputEl);
+
+  const lastTd = document.createElement('td');
+  lastTd.className = 'px-2 py-2';
+  const lastInputEl = document.createElement('input');
+  lastInputEl.type = 'text';
+  lastInputEl.value = voter.last_name || '';
+  lastInputEl.className = 'min-h-10 w-full rounded-lg border border-border px-2 py-1 text-caption';
+  lastTd.appendChild(lastInputEl);
+
   const actionsTd = document.createElement('td');
   actionsTd.className = 'px-2 py-2 text-right';
   const saveBtn = document.createElement('button');
@@ -1529,6 +1557,8 @@ function startVoterEdit(tr, voter) {
   saveBtn.addEventListener('click', async () => {
     const phone_number = phoneInputEl.value.trim();
     const account_number = accountInputEl.value.trim();
+    const first_name = firstInputEl.value.trim();
+    const last_name = lastInputEl.value.trim();
     if (!phone_number || !account_number) {
       setVoterSearchStatus('Phone and account number are required.', 'error');
       return;
@@ -1539,7 +1569,7 @@ function startVoterEdit(tr, voter) {
       const res = await apiFetch(`/admin/voters/${voter.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number, account_number }),
+        body: JSON.stringify({ phone_number, account_number, first_name, last_name }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -1561,7 +1591,7 @@ function startVoterEdit(tr, voter) {
   });
 
   actionsTd.append(saveBtn, cancelBtn);
-  tr.append(phoneTd, accountTd, statusTd, actionsTd);
+  tr.append(phoneTd, accountTd, statusTd, firstTd, lastTd, actionsTd);
   phoneInputEl.focus();
 }
 
@@ -1674,6 +1704,8 @@ if (addVoterForm) {
     e.preventDefault();
     const phone_number = document.getElementById('addVoterPhone')?.value.trim();
     const account_number = document.getElementById('addVoterAccount')?.value.trim();
+    const first_name = document.getElementById('addVoterFirstName')?.value.trim();
+    const last_name = document.getElementById('addVoterLastName')?.value.trim();
 
     if (!phone_number || !account_number) {
       setAddVoterStatus('Phone number and account number are required.', 'error');
@@ -1688,7 +1720,7 @@ if (addVoterForm) {
       const res = await apiFetch('/admin/voters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number, account_number }),
+        body: JSON.stringify({ phone_number, account_number, first_name, last_name }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -1698,6 +1730,8 @@ if (addVoterForm) {
 
       document.getElementById('addVoterPhone').value = '';
       document.getElementById('addVoterAccount').value = '';
+      document.getElementById('addVoterFirstName').value = '';
+      document.getElementById('addVoterLastName').value = '';
       setAddVoterStatus(
         `Added voter ${data.voter.phone_number} / ${data.voter.account_number}.`,
         'success'

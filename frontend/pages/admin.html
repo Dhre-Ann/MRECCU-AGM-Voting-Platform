@@ -212,14 +212,14 @@
               </svg>
             </button>
           </div>
-          <p class="text-center text-caption text-ink-muted">Browse the full list, or search by phone or account number.</p>
+          <p class="text-center text-caption text-ink-muted">Browse the full list, or search by name, phone, or account number.</p>
           <p id="downloadVotersCsvStatus" class="hidden text-center text-caption text-ink-muted" aria-live="polite"></p>
 
           <form id="voterSearchForm" class="flex flex-col gap-3 sm:flex-row">
             <input
               type="search"
               id="voterSearchInput"
-              placeholder="Phone or account number"
+              placeholder="Name, phone, or account number"
               autocomplete="off"
               class="min-h-12 flex-1 rounded-lg border border-border px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
             />
@@ -239,12 +239,14 @@
           <p id="voterSearchStatus" class="text-center text-caption text-ink-muted"></p>
 
           <div id="voterListWrap" class="hidden max-h-[28rem] overflow-auto">
-            <table class="w-full min-w-[32rem] text-left text-ui">
+            <table class="w-full min-w-[44rem] text-left text-ui">
               <thead class="sticky top-0 bg-surface">
                 <tr class="border-b border-border text-caption uppercase tracking-wide text-ink-muted">
                   <th class="px-2 py-2 font-semibold">Phone</th>
                   <th class="px-2 py-2 font-semibold">Account</th>
                   <th class="px-2 py-2 font-semibold">Status</th>
+                  <th class="px-2 py-2 font-semibold">First name</th>
+                  <th class="px-2 py-2 font-semibold">Last name</th>
                   <th class="px-2 py-2 font-semibold"><span class="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -275,6 +277,20 @@
           <form id="addVoterForm" class="grid gap-3 sm:grid-cols-2">
             <input
               type="text"
+              id="addVoterFirstName"
+              placeholder="First name"
+              autocomplete="off"
+              class="min-h-12 rounded-lg border border-border px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+            <input
+              type="text"
+              id="addVoterLastName"
+              placeholder="Last name"
+              autocomplete="off"
+              class="min-h-12 rounded-lg border border-border px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+            <input
+              type="text"
               id="addVoterPhone"
               placeholder="Phone number"
               autocomplete="off"
@@ -298,7 +314,7 @@
 
         <section class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6">
           <h2 class="text-center text-title font-bold text-primary">Upload voter list</h2>
-          <p class="text-center text-caption text-ink-muted">Bulk import from CSV. Columns: phone_number, account_number.</p>
+          <p class="text-center text-caption text-ink-muted">Bulk import from CSV. Required: phone_number, account_number. Optional: first_name, last_name.</p>
 
           <button
             id="toggleUploadCSV"
