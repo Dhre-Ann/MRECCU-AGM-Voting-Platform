@@ -2233,3 +2233,72 @@ if (positionResetConfirmInput && positionResetBtn) {
     }
   });
 }
+
+// ----- Emergency: clear voters list -----
+
+const clearVotersConfirmInput = document.getElementById('clearVotersConfirmInput');
+const clearVotersBtn = document.getElementById('clearVotersBtn');
+const clearVotersStatus = document.getElementById('clearVotersStatus');
+const CLEAR_VOTERS_PHRASE = 'CLEAR';
+
+function setClearVotersStatus(message, kind = 'muted') {
+  if (!clearVotersStatus) return;
+  clearVotersStatus.textContent = message;
+  clearVotersStatus.className =
+    kind === 'error'
+      ? 'mt-3 text-ui text-error'
+      : kind === 'success'
+        ? 'mt-3 text-ui text-success'
+        : 'mt-3 text-ui text-ink-muted';
+}
+
+function syncClearVotersButton() {
+  if (!clearVotersBtn || !clearVotersConfirmInput) return;
+  clearVotersBtn.disabled = clearVotersConfirmInput.value !== CLEAR_VOTERS_PHRASE;
+}
+
+if (clearVotersConfirmInput && clearVotersBtn) {
+  clearVotersConfirmInput.addEventListener('input', () => {
+    syncClearVotersButton();
+    setClearVotersStatus('');
+  });
+
+  clearVotersBtn.addEventListener('click', async () => {
+    if (clearVotersConfirmInput.value !== CLEAR_VOTERS_PHRASE) return;
+
+    clearVotersBtn.disabled = true;
+    setClearVotersStatus('Clearing voters list…');
+
+    try {
+      const res = await apiFetch('/admin/voters/clear', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setClearVotersStatus(data.message || 'Clear failed. No changes were applied.', 'error');
+        syncClearVotersButton();
+        return;
+      }
+
+      clearVotersConfirmInput.value = '';
+      syncClearVotersButton();
+      setClearVotersStatus(
+        `Voters list cleared. ${data.votersDeleted} voter(s) deleted. Staff admin login kept.`,
+        'success'
+      );
+
+      if (voterMgmtReady) {
+        if (voterListMode === 'all') {
+          loadAllVoters(1, { silent: true });
+        } else {
+          hideVoterList();
+        }
+      }
+      if (positionSelect?.value && positionSelect.value !== 'Select') {
+        loadLiveVotingStats(positionSelect.value);
+      }
+    } catch (err) {
+      console.error('Error clearing voters list:', err);
+      setClearVotersStatus('Network error. Clear was not confirmed — check the server before retrying.', 'error');
+      syncClearVotersButton();
+    }
+  });
+}

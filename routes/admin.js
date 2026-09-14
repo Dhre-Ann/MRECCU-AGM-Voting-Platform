@@ -498,4 +498,40 @@ router.post('/election/reset-position/:id', async (req, res) => {
   }
 });
 
+// Hardcoded staff login in /verify-voter — keep it so clearing the roll cannot lock admins out.
+const STAFF_ADMIN_PHONE = '222-1111';
+const STAFF_ADMIN_ACCOUNT = '22221';
+
+// POST /admin/voters/clear
+// Deletes every voter except the staff admin login. Tallies and races are untouched.
+router.post('/voters/clear', async (req, res) => {
+  try {
+    const deleted = await pool.query(
+      `DELETE FROM voters
+       WHERE NOT (phone_number = $1 AND account_number = $2)
+       RETURNING id`,
+      [STAFF_ADMIN_PHONE, STAFF_ADMIN_ACCOUNT]
+    );
+
+    const summary = { votersDeleted: deleted.rowCount };
+
+    console.log(
+      `[${new Date().toISOString()}] Voters list cleared: ` +
+      `${summary.votersDeleted} voter(s) deleted. Staff admin login preserved.`
+    );
+
+    return res.json({
+      success: true,
+      message: 'Voters list has been cleared.',
+      ...summary,
+    });
+  } catch (err) {
+    console.error('Error clearing voters list:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Clear failed. No changes were applied.',
+    });
+  }
+});
+
 module.exports = router;

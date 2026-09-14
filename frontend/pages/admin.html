@@ -433,6 +433,39 @@
 
           <p id="fullResetStatus" class="mt-3 text-ui"></p>
         </div>
+
+        <div class="rounded-xl border border-error/30 bg-surface p-4 sm:p-5">
+          <h3 class="text-body font-bold text-error">Clear voters list</h3>
+          <p class="mt-2 text-ui text-ink">
+            Permanently deletes every registered voter so staff can upload a fresh list.
+            The staff admin login is kept so you can still sign in.
+          </p>
+          <ul class="mt-3 list-disc space-y-1 pl-5 text-ui text-ink">
+            <li>All member rows in the voters table are removed</li>
+            <li>Vote tallies and races are not changed</li>
+            <li>Staff admin account is not deleted</li>
+          </ul>
+
+          <label class="mt-5 block text-ui font-semibold text-ink" for="clearVotersConfirmInput">
+            Type <span class="font-mono text-error">CLEAR</span> to enable the button
+          </label>
+          <input
+            type="text"
+            id="clearVotersConfirmInput"
+            autocomplete="off"
+            spellcheck="false"
+            class="mt-2 min-h-12 w-full max-w-xs rounded-lg border border-error/40 bg-surface px-4 py-2 text-body focus:border-error focus:outline-none focus:ring-2 focus:ring-error/30"
+          />
+
+          <button
+            type="button"
+            id="clearVotersBtn"
+            disabled
+            class="mt-4 min-h-11 rounded-lg bg-error px-4 py-2 text-ui font-semibold text-white transition hover:bg-error/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >Delete all voters</button>
+
+          <p id="clearVotersStatus" class="mt-3 text-ui"></p>
+        </div>
       </section>
     </div>
 
