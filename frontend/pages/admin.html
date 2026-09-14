@@ -198,8 +198,22 @@
     <div data-admin-panel="voters" class="hidden">
       <div class="space-y-6">
         <section class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-6">
-          <h2 class="text-center text-title font-bold text-primary">Find a voter</h2>
-          <p class="text-center text-caption text-ink-muted">Search by phone number or account number. Partial match is fine.</p>
+          <div class="flex items-center justify-center gap-2">
+            <h2 class="text-center text-title font-bold text-primary">Registered voters</h2>
+            <button
+              type="button"
+              id="downloadVotersCsvBtn"
+              title="Download CSV"
+              aria-label="Download CSV"
+              class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border text-primary transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="22" height="22" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </button>
+          </div>
+          <p class="text-center text-caption text-ink-muted">Browse the full list, or search by phone or account number.</p>
+          <p id="downloadVotersCsvStatus" class="hidden text-center text-caption text-ink-muted" aria-live="polite"></p>
 
           <form id="voterSearchForm" class="flex flex-col gap-3 sm:flex-row">
             <input
@@ -214,13 +228,19 @@
               id="voterSearchBtn"
               class="min-h-12 rounded-lg bg-primary px-5 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
             >Search</button>
+            <button
+              type="button"
+              id="voterShowAllBtn"
+              aria-pressed="false"
+              class="min-h-12 rounded-lg border border-border px-5 py-2 text-ui font-semibold text-primary transition hover:bg-accent-soft"
+            >Show all</button>
           </form>
 
           <p id="voterSearchStatus" class="text-center text-caption text-ink-muted"></p>
 
-          <div class="overflow-x-auto">
+          <div id="voterListWrap" class="hidden max-h-[28rem] overflow-auto">
             <table class="w-full min-w-[32rem] text-left text-ui">
-              <thead>
+              <thead class="sticky top-0 bg-surface">
                 <tr class="border-b border-border text-caption uppercase tracking-wide text-ink-muted">
                   <th class="px-2 py-2 font-semibold">Phone</th>
                   <th class="px-2 py-2 font-semibold">Account</th>
@@ -231,6 +251,20 @@
               <tbody id="voterSearchResults">
               </tbody>
             </table>
+          </div>
+
+          <div id="voterListPagination" class="hidden flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              id="voterListPrevBtn"
+              class="min-h-11 rounded-lg border border-border px-4 py-2 text-ui font-semibold text-primary transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
+            >Previous</button>
+            <span id="voterListPageLabel" class="text-caption text-ink-muted"></span>
+            <button
+              type="button"
+              id="voterListNextBtn"
+              class="min-h-11 rounded-lg border border-border px-4 py-2 text-ui font-semibold text-primary transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
+            >Next</button>
           </div>
         </section>
 

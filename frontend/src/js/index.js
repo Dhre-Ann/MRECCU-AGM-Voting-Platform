@@ -1225,6 +1225,9 @@ if (uploadBtn){
       if (res.ok && data.success) {
         alert(`CSV uploaded successfully. ${data.inserted} voters added.`);
         fileInput.value = ''; // Reset input
+        if (voterMgmtReady && voterListMode === 'all') {
+          loadAllVoters(1, { silent: true });
+        }
       } else {
         console.error('Upload failed:', data);
         alert(data.message || 'An error occurred while uploading CSV file.');
@@ -1251,6 +1254,7 @@ const TAB_EMERGENCY_ACTIVE =
   'admin-tab admin-tab-emergency min-h-11 rounded-lg bg-warning-soft px-3 py-2 text-ui font-semibold text-error';
 
 let currentAdminTab = 'setup';
+let voterMgmtReady = false;
 
 function showAdminTab(tabId) {
   if (!ADMIN_TAB_IDS.includes(tabId)) tabId = 'setup';
@@ -1309,8 +1313,21 @@ const voterSearchForm = document.getElementById('voterSearchForm');
 const voterSearchInput = document.getElementById('voterSearchInput');
 const voterSearchResults = document.getElementById('voterSearchResults');
 const voterSearchStatus = document.getElementById('voterSearchStatus');
+const voterShowAllBtn = document.getElementById('voterShowAllBtn');
+const voterListWrap = document.getElementById('voterListWrap');
+const voterListPagination = document.getElementById('voterListPagination');
+const voterListPrevBtn = document.getElementById('voterListPrevBtn');
+const voterListNextBtn = document.getElementById('voterListNextBtn');
+const voterListPageLabel = document.getElementById('voterListPageLabel');
 const addVoterForm = document.getElementById('addVoterForm');
 const addVoterStatus = document.getElementById('addVoterStatus');
+const downloadVotersCsvBtn = document.getElementById('downloadVotersCsvBtn');
+const downloadVotersCsvStatus = document.getElementById('downloadVotersCsvStatus');
+
+const VOTER_LIST_LIMIT = 100;
+let voterListMode = 'hidden';
+let voterListPage = 1;
+let voterListTotalPages = 1;
 
 function setVoterSearchStatus(message, kind = 'muted') {
   if (!voterSearchStatus) return;
@@ -1334,6 +1351,19 @@ function setAddVoterStatus(message, kind = 'muted') {
         : 'text-center text-caption text-ink-muted';
 }
 
+function setDownloadVotersCsvStatus(message, kind = 'muted') {
+  if (!downloadVotersCsvStatus) return;
+  downloadVotersCsvStatus.textContent = message;
+  downloadVotersCsvStatus.classList.toggle('hidden', !message);
+  if (!message) return;
+  downloadVotersCsvStatus.className =
+    kind === 'error'
+      ? 'text-center text-caption text-error'
+      : kind === 'success'
+        ? 'text-center text-caption text-success'
+        : 'text-center text-caption text-ink-muted';
+}
+
 function votedBadge(hasVoted) {
   const span = document.createElement('span');
   if (hasVoted) {
@@ -1344,6 +1374,92 @@ function votedBadge(hasVoted) {
     span.textContent = 'Not voted';
   }
   return span;
+}
+
+function fillVoterTable(voters) {
+  if (!voterSearchResults) return;
+  voterSearchResults.innerHTML = '';
+  voters.forEach((voter) => {
+    voterSearchResults.appendChild(renderVoterRow(voter));
+  });
+}
+
+function setVoterListToggle(visible) {
+  if (!voterShowAllBtn) return;
+  voterShowAllBtn.textContent = visible ? 'Hide all' : 'Show all';
+  voterShowAllBtn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+}
+
+function showVoterListWrap() {
+  if (voterListWrap) voterListWrap.classList.remove('hidden');
+}
+
+function hideVoterList() {
+  voterListMode = 'hidden';
+  if (voterSearchResults) voterSearchResults.innerHTML = '';
+  if (voterListWrap) voterListWrap.classList.add('hidden');
+  setVoterListPagination(false);
+  setVoterSearchStatus('');
+  setVoterListToggle(false);
+}
+
+function setVoterListPagination(visible, page = 1, totalPages = 1) {
+  if (!voterListPagination) return;
+  voterListPagination.classList.toggle('hidden', !visible);
+  voterListPagination.classList.toggle('flex', visible);
+  if (!visible) return;
+
+  if (voterListPageLabel) {
+    voterListPageLabel.textContent = `Page ${page} of ${totalPages}`;
+  }
+  if (voterListPrevBtn) voterListPrevBtn.disabled = page <= 1;
+  if (voterListNextBtn) voterListNextBtn.disabled = page >= totalPages;
+}
+
+async function loadAllVoters(page = 1, { silent = false } = {}) {
+  if (!voterSearchResults) return;
+
+  voterListPage = Math.max(1, page);
+
+  if (!silent) setVoterSearchStatus('Loading voters…');
+
+  try {
+    const res = await apiFetch(
+      `/admin/voters?page=${voterListPage}&limit=${VOTER_LIST_LIMIT}`
+    );
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      setVoterSearchStatus(data.message || 'Could not load voters.', 'error');
+      setVoterListPagination(false);
+      return;
+    }
+
+    const total = Number(data.total) || 0;
+    const votedCount = Number(data.votedCount) || 0;
+    voterListPage = Number(data.page) || voterListPage;
+    voterListTotalPages = Number(data.totalPages) || 1;
+
+    fillVoterTable(data.voters || []);
+    voterListMode = 'all';
+    showVoterListWrap();
+    setVoterListToggle(true);
+    setVoterListPagination(voterListTotalPages > 1, voterListPage, voterListTotalPages);
+
+    if (total === 0) {
+      if (voterListWrap) voterListWrap.classList.add('hidden');
+      setVoterListPagination(false);
+      setVoterSearchStatus('No voters registered yet.');
+      return;
+    }
+
+    setVoterSearchStatus(
+      `${total} registered voter${total === 1 ? '' : 's'} · ${votedCount} voted.`
+    );
+  } catch (err) {
+    console.error('Error listing voters:', err);
+    if (!silent) setVoterSearchStatus('Network error while loading voters.', 'error');
+    setVoterListPagination(false);
+  }
 }
 
 function renderVoterRow(voter) {
@@ -1454,10 +1570,12 @@ if (voterSearchForm && voterSearchResults) {
     e.preventDefault();
     const query = (voterSearchInput?.value || '').trim();
     if (!query) {
-      setVoterSearchStatus('Enter a phone or account number to search.', 'error');
+      loadAllVoters(1);
       return;
     }
 
+    voterListMode = 'search';
+    setVoterListPagination(false);
     setVoterSearchStatus('Searching…');
     voterSearchResults.innerHTML = '';
 
@@ -1470,13 +1588,15 @@ if (voterSearchForm && voterSearchResults) {
       }
 
       if (!data.voters.length) {
+        if (voterListWrap) voterListWrap.classList.add('hidden');
+        setVoterListToggle(false);
         setVoterSearchStatus('No matching voters.', 'muted');
         return;
       }
 
-      data.voters.forEach((voter) => {
-        voterSearchResults.appendChild(renderVoterRow(voter));
-      });
+      fillVoterTable(data.voters);
+      showVoterListWrap();
+      setVoterListToggle(true);
 
       const suffix = data.voters.length === 50 ? ' (showing first 50)' : '';
       setVoterSearchStatus(`${data.voters.length} result${data.voters.length === 1 ? '' : 's'}${suffix}.`);
@@ -1486,6 +1606,68 @@ if (voterSearchForm && voterSearchResults) {
     }
   });
 }
+
+if (voterShowAllBtn) {
+  voterShowAllBtn.addEventListener('click', () => {
+    if (voterListMode !== 'hidden') {
+      hideVoterList();
+      return;
+    }
+    if (voterSearchInput) voterSearchInput.value = '';
+    loadAllVoters(1);
+  });
+}
+
+if (voterListPrevBtn) {
+  voterListPrevBtn.addEventListener('click', () => {
+    if (voterListPage > 1) loadAllVoters(voterListPage - 1);
+  });
+}
+
+if (voterListNextBtn) {
+  voterListNextBtn.addEventListener('click', () => {
+    if (voterListPage < voterListTotalPages) loadAllVoters(voterListPage + 1);
+  });
+}
+
+if (downloadVotersCsvBtn) {
+  downloadVotersCsvBtn.addEventListener('click', async () => {
+    downloadVotersCsvBtn.disabled = true;
+    setDownloadVotersCsvStatus('Preparing download…');
+
+    try {
+      const res = await apiFetch('/admin/voters/export');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDownloadVotersCsvStatus(data.message || 'Could not download voter list.', 'error');
+        return;
+      }
+
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="([^"]+)"/);
+      const filename = match ? match[1] : 'mreccu-voters.csv';
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setDownloadVotersCsvStatus('Download started.', 'success');
+    } catch (err) {
+      console.error('Error downloading voters CSV:', err);
+      setDownloadVotersCsvStatus('Network error while downloading voter list.', 'error');
+    } finally {
+      downloadVotersCsvBtn.disabled = false;
+    }
+  });
+}
+
+voterMgmtReady = true;
 
 if (addVoterForm) {
   addVoterForm.addEventListener('submit', async (e) => {
@@ -1520,6 +1702,9 @@ if (addVoterForm) {
         `Added voter ${data.voter.phone_number} / ${data.voter.account_number}.`,
         'success'
       );
+      if (voterListMode === 'all') {
+        loadAllVoters(voterListPage, { silent: true });
+      }
     } catch (err) {
       console.error('Error adding voter:', err);
       setAddVoterStatus('Network error while adding voter.', 'error');

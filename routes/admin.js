@@ -18,6 +18,61 @@ function escapeIlike(value) {
   return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 }
 
+function parsePositiveInt(value, fallback) {
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+function csvEscape(value) {
+  const str = value == null ? '' : String(value);
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+// GET /admin/voters — full register (paginated)
+router.get('/voters', async (req, res) => {
+  const page = Math.max(1, parsePositiveInt(req.query.page, 1));
+  const limit = Math.min(200, Math.max(1, parsePositiveInt(req.query.limit, 100)));
+  const offset = (page - 1) * limit;
+
+  try {
+    const [countResult, listResult] = await Promise.all([
+      pool.query(`
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE has_voted)::int AS voted
+        FROM voters
+      `),
+      pool.query(
+        `SELECT id, phone_number, account_number, has_voted
+         FROM voters
+         ORDER BY id ASC
+         LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      ),
+    ]);
+
+    const total = countResult.rows[0].total;
+    const votedCount = countResult.rows[0].voted;
+    const totalPages = Math.max(1, Math.ceil(total / limit) || 1);
+
+    return res.json({
+      success: true,
+      voters: listResult.rows,
+      page,
+      limit,
+      total,
+      votedCount,
+      totalPages,
+    });
+  } catch (err) {
+    console.error('Error listing voters:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
 // GET /admin/voters/search?query=
 router.get('/voters/search', async (req, res) => {
   const query = normalizeCredential(req.query.query);
@@ -40,6 +95,38 @@ router.get('/voters/search', async (req, res) => {
     return res.json({ success: true, voters: result.rows });
   } catch (err) {
     console.error('Error searching voters:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
+// GET /admin/voters/export — full register as CSV
+router.get('/voters/export', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT phone_number, account_number, has_voted
+       FROM voters
+       ORDER BY id ASC`
+    );
+
+    const header = 'phone_number,account_number,has_voted';
+    const lines = result.rows.map((row) =>
+      [
+        csvEscape(row.phone_number),
+        csvEscape(row.account_number),
+        row.has_voted ? 'true' : 'false',
+      ].join(',')
+    );
+    const csvBody = `${header}\n${lines.join('\n')}${lines.length ? '\n' : ''}`;
+    const date = new Date().toISOString().slice(0, 10);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="mreccu-voters-${date}.csv"`
+    );
+    return res.send(`\uFEFF${csvBody}`);
+  } catch (err) {
+    console.error('Error exporting voters:', err);
     return res.status(500).json({ success: false, message: 'Database error' });
   }
 });
