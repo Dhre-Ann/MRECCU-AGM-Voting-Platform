@@ -11,10 +11,24 @@ const API_BASE_URL = !isLocalHost
       ? window.location.origin
       : `${window.location.protocol}//${window.location.hostname}:3000`);
 
+const authButtons = [];
+
 function apiFetch(path, options = {}) {
   return fetch(`${API_BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
+  }).then(async (response) => {
+    if (response.status === 403) {
+      try {
+        const data = await response.clone().json();
+        if (data && data.message === 'Admin access required') {
+          markLoggedOut();
+        }
+      } catch {
+        // Ignore non-JSON 403 bodies
+      }
+    }
+    return response;
   });
 }
 
@@ -26,14 +40,53 @@ function loginPageUrl() {
   return isOnPagesDir() ? './login.html' : './pages/login.html';
 }
 
+function isOnAdminPage() {
+  return window.location.pathname.includes('admin.html');
+}
+
 function isLoggedIn() {
   const storedId = localStorage.getItem('voterId');
-  return Boolean(storedId) && storedId !== 'null';
+  if (!storedId || storedId === 'null') return false;
+  if (isOnAdminPage()) {
+    return localStorage.getItem('isAdmin') === 'true';
+  }
+  return true;
 }
 
 function clearClientSession() {
   localStorage.removeItem('voterId');
   localStorage.removeItem('isAdmin');
+}
+
+function setAuthButtonLabels() {
+  const loggedIn = isLoggedIn();
+  const onLoginPage = window.location.pathname.includes('login.html');
+
+  authButtons.forEach(({ button, loggedInLabel, loggedOutLabel }) => {
+    if (!button) return;
+    button.disabled = false;
+    button.textContent = loggedIn ? loggedInLabel : loggedOutLabel;
+    if (onLoginPage) {
+      button.classList.toggle('hidden', !loggedIn);
+    } else {
+      button.classList.remove('hidden');
+    }
+  });
+}
+
+function markLoggedOut() {
+  clearClientSession();
+  setAuthButtonLabels();
+}
+
+function applySessionState({ voterId, isAdmin, loggedIn }) {
+  if (loggedIn && voterId) {
+    localStorage.setItem('voterId', String(voterId));
+    localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
+  } else {
+    clearClientSession();
+  }
+  setAuthButtonLabels();
 }
 
 async function logoutAndRedirect() {
@@ -49,9 +102,8 @@ async function logoutAndRedirect() {
 function bindAuthSessionButton(button, { loggedInLabel = 'Log out', loggedOutLabel = 'Log in' } = {}) {
   if (!button) return;
 
-  const loggedIn = isLoggedIn();
-  button.textContent = loggedIn ? loggedInLabel : loggedOutLabel;
-  button.classList.remove('hidden');
+  authButtons.push({ button, loggedInLabel, loggedOutLabel });
+  setAuthButtonLabels();
 
   button.addEventListener('click', async () => {
     if (isLoggedIn()) {
@@ -62,6 +114,34 @@ function bindAuthSessionButton(button, { loggedInLabel = 'Log out', loggedOutLab
     }
     window.location.href = loginPageUrl();
   });
+}
+
+async function syncAuthSession() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/session`, { credentials: 'include' });
+    const data = await res.json();
+    if (!data.success) {
+      markLoggedOut();
+      return;
+    }
+
+    if (isOnAdminPage()) {
+      if (data.isAdmin) {
+        applySessionState({ voterId: data.voterId, isAdmin: true, loggedIn: true });
+      } else {
+        markLoggedOut();
+      }
+      return;
+    }
+
+    applySessionState({
+      voterId: data.voterId,
+      isAdmin: data.isAdmin,
+      loggedIn: data.loggedIn,
+    });
+  } catch (error) {
+    console.error('Unable to check session:', error);
+  }
 }
 
 // Protect admin page
@@ -91,6 +171,8 @@ if (authSessionBtn) {
     bindAuthSessionButton(authSessionBtn);
   }
 }
+
+syncAuthSession();
 
 // Phone number formatting for login
 if (phoneInput) {

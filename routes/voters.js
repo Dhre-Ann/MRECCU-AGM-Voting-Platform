@@ -54,6 +54,17 @@ router.post('/verify-voter', verifyVoterLimiter, async (req, res) => {
   }
 });
 
+router.get('/session', (req, res) => {
+  const voterId = req.session && req.session.voterId ? req.session.voterId : null;
+  const isAdmin = !!(req.session && req.session.isAdmin === true);
+  return res.status(200).json({
+    success: true,
+    loggedIn: Boolean(voterId),
+    isAdmin,
+    voterId,
+  });
+});
+
 router.post('/logout', (req, res) => {
   const cookieOptions = {
     httpOnly: true,
