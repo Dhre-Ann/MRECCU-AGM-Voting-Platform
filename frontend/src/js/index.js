@@ -1770,6 +1770,10 @@ function sumVoteCounts(candidates) {
   return (candidates || []).reduce((sum, c) => sum + (Number(c.vote_count) || 0), 0);
 }
 
+function sumPaperVoteCounts(candidates) {
+  return (candidates || []).reduce((sum, c) => sum + (Number(c.paper_vote_count) || 0), 0);
+}
+
 function decorateResultCandidates(candidates, { isLive }) {
   const list = candidates || [];
   const totalCast = sumVoteCounts(list);
@@ -1781,11 +1785,13 @@ function decorateResultCandidates(candidates, { isLive }) {
 
   return list.map((c, i) => {
     const count = Number(c.vote_count) || 0;
+    const paperCount = Number(c.paper_vote_count) || 0;
     const sharePct = totalCast === 0 ? 0 : (count / totalCast) * 100;
     const isLeader = Boolean(leaderLabel && count === maxVotes);
     return {
       name: c.name,
       count,
+      paperCount,
       color: resultSliceColor(i),
       sharePct,
       barPct: maxVotes === 0 ? 0 : Math.round((count / maxVotes) * 100),
@@ -1815,12 +1821,16 @@ function renderResultsCandidateBars(decorated) {
     const badge = c.leaderLabel
       ? `<span class="rounded-md bg-highlight-soft px-1.5 py-0.5 text-caption font-semibold text-ink">${c.leaderLabel}</span>`
       : '';
+    const paperNote = c.paperCount > 0
+      ? `<span class="text-caption font-normal text-ink-muted">(${c.paperCount} paper)</span>`
+      : '';
     const shareLabel = `${Math.round(c.sharePct)}%`;
     return `
       <div class="space-y-1">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <span class="flex flex-wrap items-center gap-2 font-medium text-ink">
             ${c.name}
+            ${paperNote}
             ${badge}
           </span>
           <span class="shrink-0 text-caption font-semibold text-primary">${c.count} vote${c.count === 1 ? '' : 's'} · ${shareLabel}</span>
@@ -1838,7 +1848,7 @@ function renderResultsDonut(decorated) {
   const legend = decorated.map((c) => `
     <li class="flex items-center gap-2 text-caption text-ink">
       <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: ${c.color}"></span>
-      <span>${c.name}</span>
+      <span>${c.name}${c.paperCount > 0 ? ` <span class="text-ink-muted">(${c.paperCount} paper)</span>` : ''}</span>
     </li>
   `).join('');
 
@@ -1953,9 +1963,12 @@ async function loadResultsDashboard() {
     }
 
     history.forEach((item) => {
+      const paperTotal = sumPaperVoteCounts(item.candidates);
       cards.push(renderResultsCard({
         title: item.name,
-        badge: item.paper_results_added ? 'Complete · paper added' : 'Complete',
+        badge: item.paper_results_added
+          ? `Complete · paper added (${paperTotal})`
+          : 'Complete',
         badgeClass: 'bg-success-soft text-success',
         isLive: false,
         statHtml: renderCompletedStatRow(sumVoteCounts(item.candidates), totalVoters),

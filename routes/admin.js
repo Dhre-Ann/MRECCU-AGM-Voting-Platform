@@ -360,7 +360,8 @@ router.post('/election/full-reset', async (req, res) => {
 
     const candidates = await client.query(`
       UPDATE candidates
-      SET vote_count = 0
+      SET vote_count = 0,
+          paper_vote_count = 0
       RETURNING id
     `);
 
@@ -452,7 +453,7 @@ router.post('/election/reset-position/:id', async (req, res) => {
     }
 
     const candidates = await client.query(
-      'UPDATE candidates SET vote_count = 0 WHERE position_id = $1 RETURNING id',
+      'UPDATE candidates SET vote_count = 0, paper_vote_count = 0 WHERE position_id = $1 RETURNING id',
       [positionId]
     );
 

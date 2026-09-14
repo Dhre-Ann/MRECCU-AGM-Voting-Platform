@@ -281,7 +281,7 @@ router.get('/history', async (req, res) => {
 
     for (const pos of completedPositions) {
       const candidatesResult = await pool.query(
-        'SELECT name, vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
+        'SELECT name, vote_count, paper_vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
         [pos.id]
       );
 
@@ -330,7 +330,7 @@ router.get('/live-stats', async (req, res) => {
 
     // Votes per candidate
     const candidateVotesResult = await pool.query(
-      'SELECT name, vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
+      'SELECT name, vote_count, paper_vote_count FROM candidates WHERE position_id = $1 ORDER BY vote_count DESC',
       [positionId]
     );
 
@@ -360,9 +360,14 @@ router.post('/poll-results', requireAdmin, async (req, res) => {
     const positionId = positionResult.rows[0].id;
 
     for (const entry of resultsByPosition[positionName]) {
+      const count = parseInt(entry.count, 10) || 0;
+      if (count <= 0) continue;
       await pool.query(
-        'UPDATE candidates SET vote_count = vote_count + $1 WHERE name = $2 AND position_id = $3',
-        [entry.count, entry.candidateName, positionId]
+        `UPDATE candidates
+         SET vote_count = vote_count + $1,
+             paper_vote_count = paper_vote_count + $1
+         WHERE name = $2 AND position_id = $3`,
+        [count, entry.candidateName, positionId]
       );
     }
 
