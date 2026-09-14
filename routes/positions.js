@@ -4,6 +4,24 @@ const requireAdmin = require('../config/requireAdmin');
 
 const router = express.Router();
 
+// GET /positions — names for #positionSelect + candidate counts for the manage list
+router.get('/positions', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.id, p.name, COUNT(c.id)::int AS candidate_count
+       FROM positions p
+       LEFT JOIN candidates c ON c.position_id = p.id
+       GROUP BY p.id, p.name
+       ORDER BY p.id ASC`
+    );
+
+    return res.json({ success: true, positions: result.rows });
+  } catch (err) {
+    console.error('Error listing positions:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
 // GET position by name → used to populate num_votes_allowed
 router.get('/get-position-name', async (req, res) => {
   const { name } = req.query;

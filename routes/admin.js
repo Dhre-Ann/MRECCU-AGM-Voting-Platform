@@ -10,6 +10,10 @@ function normalizeCredential(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizePositionName(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function escapeIlike(value) {
   return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 }
@@ -137,6 +141,98 @@ router.patch('/voters/:id', async (req, res) => {
   } catch (err) {
     console.error('Error updating voter:', err);
     return res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
+// POST /admin/positions — add a race (name only; num_votes_allowed uses the DB default of 1)
+router.post('/positions', async (req, res) => {
+  const name = normalizePositionName(req.body.name);
+
+  if (!name) {
+    return res.status(400).json({ success: false, message: 'Position name is required' });
+  }
+
+  try {
+    const existing = await pool.query(
+      'SELECT id FROM positions WHERE name = $1',
+      [name]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'A position with that name already exists',
+      });
+    }
+
+    const inserted = await pool.query(
+      `INSERT INTO positions (name, voting_active, voting_complete, paper_results_added)
+       VALUES ($1, FALSE, FALSE, FALSE)
+       RETURNING id, name, num_votes_allowed, voting_active, voting_complete, paper_results_added`,
+      [name]
+    );
+
+    return res.status(201).json({ success: true, position: inserted.rows[0] });
+  } catch (err) {
+    console.error('Error adding position:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
+const POSITION_HAS_CANDIDATES_MESSAGE = "Remove this position's candidates first";
+
+// DELETE /admin/positions/:id — refused if any candidates are attached (FK is ON DELETE CASCADE)
+router.delete('/positions/:id', async (req, res) => {
+  const positionId = parseInt(req.params.id, 10);
+  if (Number.isNaN(positionId)) {
+    return res.status(400).json({ success: false, message: 'Invalid position id' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // FOR UPDATE so a concurrent candidate INSERT (FK KEY SHARE on this row) waits
+    const existing = await client.query(
+      'SELECT id, name FROM positions WHERE id = $1 FOR UPDATE',
+      [positionId]
+    );
+
+    if (existing.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Position not found' });
+    }
+
+    const attached = await client.query(
+      'SELECT COUNT(*)::int AS count FROM candidates WHERE position_id = $1',
+      [positionId]
+    );
+
+    if (attached.rows[0].count > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        success: false,
+        message: POSITION_HAS_CANDIDATES_MESSAGE,
+      });
+    }
+
+    await client.query('DELETE FROM positions WHERE id = $1', [positionId]);
+    await client.query('COMMIT');
+
+    return res.json({
+      success: true,
+      message: `Position "${existing.rows[0].name}" removed.`,
+    });
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('Error rolling back position delete:', rollbackErr);
+    }
+    console.error('Error deleting position:', err);
+    return res.status(500).json({ success: false, message: 'Database error' });
+  } finally {
+    client.release();
   }
 });
 

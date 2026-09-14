@@ -49,15 +49,31 @@
             title="select_position"
             class="min-h-12 w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-body text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
           >
-            <option disabled selected>Select</option>
-            <option>Board of Directors</option>
-            <option>Credit Committee</option>
-            <option>Supervisory Committee</option>
-            <option>RESOLUTION - To Provide Honorarium for Officers</option>
-            <option>RESOLUTION - Declaration of dividends and Patronage Refund</option>
-            <option>RESOLUTION - To Appoint Auditor</option>
-            <option>Test Run</option>
+            <option value="Select" disabled selected>Select</option>
           </select>
+        </div>
+
+        <div class="space-y-3 rounded-xl border border-border bg-canvas/60 p-4">
+          <h3 class="text-ui font-semibold text-ink">Manage positions</h3>
+          <p class="text-caption text-ink-muted">Add a race for this election year, or remove one that has no candidates attached.</p>
+
+          <ul id="positionManageList" class="space-y-2 text-ui"></ul>
+
+          <form id="addPositionForm" class="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-stretch">
+            <input
+              type="text"
+              id="addPositionName"
+              placeholder="Position name"
+              autocomplete="off"
+              class="min-h-11 rounded-lg border border-border bg-surface px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+            <button
+              type="submit"
+              id="addPositionBtn"
+              class="min-h-11 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
+            >Add</button>
+          </form>
+          <p id="positionManageStatus" class="text-caption text-ink-muted"></p>
         </div>
 
         <div class="space-y-2">

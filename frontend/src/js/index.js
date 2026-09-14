@@ -168,6 +168,11 @@ const candidateNameInput = document.getElementById('candidateName');
 const candidateOccupationInput = document.getElementById('candidateOccupation');
 const addCandidateBtn = document.getElementById('addCandidateBtn');
 const candidateList = document.getElementById('candidateList');
+const positionManageList = document.getElementById('positionManageList');
+const addPositionForm = document.getElementById('addPositionForm');
+const addPositionNameInput = document.getElementById('addPositionName');
+const addPositionBtn = document.getElementById('addPositionBtn');
+const positionManageStatus = document.getElementById('positionManageStatus');
 let previousVotingActive = null;
 
 const START_VOTING_BTN_CLASS =
@@ -189,6 +194,144 @@ function setToggleVotingAppearance(isActive) {
     const isCollapsed = toggleVotingSection.classList.contains('hidden');
     toggleVotingSection.className = isActive ? STOP_VOTING_PANEL_CLASS : START_VOTING_PANEL_CLASS;
     if (isCollapsed) toggleVotingSection.classList.add('hidden');
+  }
+}
+
+function setPositionManageStatus(message, kind = 'muted') {
+  if (!positionManageStatus) return;
+  positionManageStatus.textContent = message;
+  positionManageStatus.className =
+    kind === 'error'
+      ? 'text-caption text-error'
+      : kind === 'success'
+        ? 'text-caption text-success'
+        : 'text-caption text-ink-muted';
+}
+
+function populatePositionSelect(positions, previousName) {
+  if (!positionSelect) return;
+
+  positionSelect.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = 'Select';
+  placeholder.disabled = true;
+  placeholder.textContent = 'Select';
+  positionSelect.appendChild(placeholder);
+
+  let restored = false;
+  positions.forEach((position) => {
+    const option = document.createElement('option');
+    option.value = position.name;
+    option.textContent = position.name;
+    if (previousName && previousName === position.name) {
+      option.selected = true;
+      restored = true;
+    }
+    positionSelect.appendChild(option);
+  });
+
+  if (!restored) {
+    placeholder.selected = true;
+  }
+}
+
+function renderPositionManageList(positions) {
+  if (!positionManageList) return;
+  positionManageList.innerHTML = '';
+
+  if (!positions.length) {
+    const empty = document.createElement('li');
+    empty.className = 'text-caption italic text-ink-muted';
+    empty.textContent = 'No positions yet.';
+    positionManageList.appendChild(empty);
+    return;
+  }
+
+  positions.forEach((position) => {
+    const li = document.createElement('li');
+    li.className = 'flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2.5';
+
+    const label = document.createElement('div');
+    label.className = 'min-w-0';
+    const nameEl = document.createElement('p');
+    nameEl.className = 'truncate font-semibold text-ink';
+    nameEl.textContent = position.name;
+    const countEl = document.createElement('p');
+    countEl.className = 'text-caption text-ink-muted';
+    const count = Number(position.candidate_count) || 0;
+    countEl.textContent = count === 1 ? '1 candidate' : `${count} candidates`;
+    label.append(nameEl, countEl);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.className =
+      'shrink-0 text-caption font-semibold text-error hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline';
+
+    if (count > 0) {
+      deleteBtn.disabled = true;
+      deleteBtn.title = "Remove this position's candidates first";
+    } else {
+      deleteBtn.addEventListener('click', () => deletePosition(position));
+    }
+
+    li.append(label, deleteBtn);
+    positionManageList.appendChild(li);
+  });
+}
+
+function clearRaceConfigIfUnselected() {
+  if (!positionSelect || (positionSelect.value && positionSelect.value !== 'Select')) return;
+  if (candidateList) candidateList.innerHTML = '';
+  const votesAllowedTextEl = document.getElementById('votesAllowedText');
+  const setVotesAllowedBtnEl = document.getElementById('setVotesAllowedBtn');
+  if (setVotesAllowedBtnEl && votesAllowedTextEl) {
+    votesAllowedTextEl.textContent = 'Not Set';
+    setVotesAllowedBtnEl.textContent = 'Set';
+  }
+}
+
+async function loadPositions({ updateSelect = true } = {}) {
+  if (!positionSelect && !positionManageList) return;
+
+  try {
+    const res = await apiFetch('/positions');
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      setPositionManageStatus(data.message || 'Could not load positions.', 'error');
+      return;
+    }
+
+    if (updateSelect) {
+      const previousName = positionSelect?.value;
+      populatePositionSelect(data.positions, previousName);
+      clearRaceConfigIfUnselected();
+    }
+    renderPositionManageList(data.positions);
+  } catch (err) {
+    console.error('Error loading positions:', err);
+    setPositionManageStatus('Network error while loading positions.', 'error');
+  }
+}
+
+async function deletePosition(position) {
+  const confirmed = confirm(`Delete “${position.name}”? This cannot be undone.`);
+  if (!confirmed) return;
+
+  try {
+    const res = await apiFetch(`/admin/positions/${position.id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      setPositionManageStatus(data.message || 'Could not delete position.', 'error');
+      await loadPositions();
+      return;
+    }
+
+    setPositionManageStatus(data.message || `Position “${position.name}” removed.`, 'success');
+    await loadPositions();
+  } catch (err) {
+    console.error('Error deleting position:', err);
+    setPositionManageStatus('Network error while deleting position.', 'error');
   }
 }
 
@@ -349,6 +492,8 @@ async function loadCandidates(positionName) {
     
     candidateList.appendChild(li);
   });
+
+  await loadPositions({ updateSelect: false });
 }
 
 // Function to remove a candidate by ID
@@ -383,6 +528,46 @@ if (positionSelect){
     candidateList.innerHTML = ''; // Clear if no position selected
   }
 });
+}
+
+if (addPositionForm) {
+  addPositionForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = addPositionNameInput?.value.trim();
+    if (!name) {
+      setPositionManageStatus('Position name is required.', 'error');
+      return;
+    }
+
+    if (addPositionBtn) addPositionBtn.disabled = true;
+    setPositionManageStatus('Adding position…');
+
+    try {
+      const res = await apiFetch('/admin/positions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPositionManageStatus(data.message || 'Could not add position.', 'error');
+        return;
+      }
+
+      if (addPositionNameInput) addPositionNameInput.value = '';
+      setPositionManageStatus(`Added “${data.position.name}”. Set votes allowed once you select it.`, 'success');
+      await loadPositions();
+    } catch (err) {
+      console.error('Error adding position:', err);
+      setPositionManageStatus('Network error while adding position.', 'error');
+    } finally {
+      if (addPositionBtn) addPositionBtn.disabled = false;
+    }
+  });
+}
+
+if (positionSelect || positionManageList) {
+  loadPositions();
 }
 
 
