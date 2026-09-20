@@ -62,7 +62,7 @@
 
         <div class="space-y-3 rounded-xl border border-border bg-canvas/60 p-4">
           <h3 class="text-ui font-semibold text-ink">Manage positions</h3>
-          <p class="text-caption text-ink-muted">Add a race for this election year, or remove one that has no candidates attached.</p>
+          <p class="text-caption text-ink-muted">Add a race for this election year, or remove one that has no choices attached.</p>
 
           <ul id="positionManageList" class="space-y-2 text-ui"></ul>
 
@@ -96,26 +96,26 @@
         </div>
 
         <div class="space-y-2">
-          <label class="block text-ui font-semibold text-ink" for="candidateName">Candidates</label>
+          <label class="block text-ui font-semibold text-ink" for="candidateName">Choices</label>
           <div class="space-y-2">
             <div class="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-stretch">
               <input
                 type="text"
                 id="candidateName"
-                placeholder="Candidate Name"
+                placeholder="Choice Name"
                 class="min-h-12 rounded-lg border border-border px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
               <input
                 type="text"
                 id="candidateOccupation"
-                placeholder="Candidate Occupation"
+                placeholder="Choice Occupation"
                 class="min-h-12 rounded-lg border border-border px-4 py-2 text-body focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
               <button
                 id="addCandidateBtn"
                 type="button"
                 class="min-h-12 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover"
-              >Add Candidate</button>
+              >Add Choice</button>
             </div>
 
             <ul id="candidateList" class="space-y-2 text-ui">
@@ -181,7 +181,7 @@
             </div>
 
             <div>
-              <h3 class="mb-3 text-ui font-semibold text-ink">Candidate tallies</h3>
+              <h3 class="mb-3 text-ui font-semibold text-ink">Choice tallies</h3>
               <div id="candidateVotes" class="space-y-3 text-ui"></div>
             </div>
           </div>
@@ -378,7 +378,7 @@
             <p id="positionResetScopeNote" class="text-ui text-ink"></p>
             <ul class="list-disc space-y-1 pl-5 text-ui text-ink">
               <li>This race: voting stopped, marked incomplete, paper tallies unlocked</li>
-              <li>This race’s candidates only: vote count set to 0</li>
+              <li>This race’s choices only: vote count set to 0</li>
               <li>Every voter: <span class="font-semibold">has voted</span> cleared</li>
             </ul>
 
@@ -406,10 +406,10 @@
 
         <div class="rounded-xl border border-error/30 bg-surface p-4 sm:p-5">
           <h3 class="text-body font-bold text-error">Full election reset</h3>
-          <p class="mt-2 text-ui text-ink">This wipes the current election so staff can start over. It does not delete voters or candidates.</p>
+          <p class="mt-2 text-ui text-ink">This wipes the current election so staff can start over. It does not delete voters or choices.</p>
           <ul class="mt-3 list-disc space-y-1 pl-5 text-ui text-ink">
             <li>Every position: voting stopped, marked incomplete, paper tallies unlocked</li>
-            <li>Every candidate, every race: vote count set to 0</li>
+            <li>Every choice, every race: vote count set to 0</li>
             <li>Every voter: <span class="font-semibold">has voted</span> cleared</li>
           </ul>
 

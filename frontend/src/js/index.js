@@ -391,7 +391,7 @@ function renderPositionManageList(positions) {
     const countEl = document.createElement('p');
     countEl.className = 'text-caption text-ink-muted';
     const count = Number(position.candidate_count) || 0;
-    countEl.textContent = count === 1 ? '1 candidate' : `${count} candidates`;
+    countEl.textContent = count === 1 ? '1 choice' : `${count} choices`;
     label.append(nameEl, countEl);
 
     const deleteBtn = document.createElement('button');
@@ -402,7 +402,7 @@ function renderPositionManageList(positions) {
 
     if (count > 0) {
       deleteBtn.disabled = true;
-      deleteBtn.title = "Remove this position's candidates first";
+      deleteBtn.title = "Remove this position's choices first";
     } else {
       deleteBtn.addEventListener('click', () => deletePosition(position));
     }
@@ -591,7 +591,7 @@ if (addCandidateBtn){
       await loadCandidates(positionName);  // Refresh the list
     } else {
       console.error(await response.text());
-      alert('Error adding candidate.');
+      alert('Error adding choice.');
     }
   } catch (err) {
     console.error(err);
@@ -630,7 +630,7 @@ async function loadCandidates(positionName) {
 
 // Function to remove a candidate by ID
 async function removeCandidate(candidateId, positionName) {
-  const confirmed = confirm('Are you sure you want to remove this candidate?');
+  const confirmed = confirm('Are you sure you want to remove this choice?');
   if (!confirmed) return;
 
   try {
@@ -640,7 +640,7 @@ async function removeCandidate(candidateId, positionName) {
     if (response.ok) {
       await loadCandidates(positionName);
     } else {
-      alert('Failed to remove candidate.');
+      alert('Failed to remove choice.');
     }
   } catch (err) {
     console.error(err);
@@ -896,7 +896,7 @@ async function submitVoteForm(activePosition){
   clearVoteFeedback();
 
   if (selected.length === 0) {
-    showVoteFeedback('Please select at least one candidate to vote.');
+    showVoteFeedback('Please select at least one choice to vote.');
     return;
   }
 
@@ -934,7 +934,7 @@ async function submitVoteForm(activePosition){
       updateVotedUi(true);
       return;
       } else if (response.status === 400){
-        showVoteFeedback(data.message || 'Please select the right number of candidates');
+        showVoteFeedback(data.message || 'Please select the right number of choices');
         if (submitVoteBtn) {
           submitVoteBtn.disabled = false;
           submitVoteBtn.textContent = 'Cast Vote';
@@ -1021,8 +1021,8 @@ async function loadActiveVoting() {
 
     if (positionTitle){
       positionTitle.textContent = position;
-      votesAllowedText.innerHTML = `Select <strong>${num_votes_allowed}</strong> out of the ${candidates.length} candidates below.`;
-      voteLimitNote.textContent = `You can only select up to ${num_votes_allowed} candidate(s) for this position.`;
+      votesAllowedText.innerHTML = `Select <strong>${num_votes_allowed}</strong> out of the ${candidates.length} choices below.`;
+      voteLimitNote.textContent = `You can only select up to ${num_votes_allowed} choice(s) for this position.`;
     
     candidatesGrid.innerHTML = ''; // Clear grid before populating
 
@@ -2031,7 +2031,7 @@ function renderResultsCard({ title, badge, badgeClass, statHtml, candidates, isL
       </div>
       ${statHtml || ''}
       ${empty
-        ? '<p class="text-caption italic text-ink-muted">No candidates for this position.</p>'
+        ? '<p class="text-caption italic text-ink-muted">No choices for this position.</p>'
         : `<div class="flex flex-col gap-5 sm:flex-row sm:items-start">
             <div class="min-w-0 flex-1 space-y-3 text-ui">${renderResultsCandidateBars(decorated)}</div>
             ${renderResultsDonut(decorated)}
@@ -2167,7 +2167,7 @@ if (fullResetConfirmInput && fullResetBtn) {
       fullResetConfirmInput.value = '';
       syncFullResetButton();
       setFullResetStatus(
-        `Reset complete. ${data.positionsReset} position(s), ${data.candidatesZeroed} candidate(s) zeroed, ${data.votersReset} voter(s) cleared.`,
+        `Reset complete. ${data.positionsReset} position(s), ${data.candidatesZeroed} choice(s) zeroed, ${data.votersReset} voter(s) cleared.`,
         'success'
       );
 
@@ -2296,7 +2296,7 @@ if (positionResetConfirmInput && positionResetBtn) {
 
       positionResetConfirmInput.value = '';
       setPositionResetStatus(
-        `Reset “${data.positionName}” only. ${data.candidatesZeroed} candidate(s) zeroed, ${data.votersReset} voter(s) cleared. Other races untouched.`,
+        `Reset “${data.positionName}” only. ${data.candidatesZeroed} choice(s) zeroed, ${data.votersReset} voter(s) cleared. Other races untouched.`,
         'success'
       );
 

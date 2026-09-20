@@ -19,7 +19,7 @@ router.post('/add-candidate', requireAdmin, async (req, res) => {
       [positionId, candidateName, candidateOccupation]
     );
 
-    res.status(200).send('Candidate added.');
+    res.status(200).send('Choice added.');
   } catch (error) {
     console.error(error);
     res.status(500).send('Database error.');

@@ -52,7 +52,7 @@ router.post('/start', requireAdmin, async (req, res) => {
     const candidateCount = parseInt(candidatesResult.rows[0].count, 10);
 
     if (candidateCount === 0) {
-      return res.status(400).json({ success: false, message: 'No candidates found for this position.' });
+      return res.status(400).json({ success: false, message: 'No choices found for this position.' });
     }
 
     // Check num_votes_allowed is appropriate
@@ -196,7 +196,7 @@ router.post('/vote', async (req, res) => {
   const { voterId, position, selectedCandidates } = req.body;
 
   if (!voterId || !position || !Array.isArray(selectedCandidates) || selectedCandidates.length === 0) {
-    return res.status(400).json({ success: false, message: 'Voter ID, position, and selected candidates are required' });
+    return res.status(400).json({ success: false, message: 'Voter ID, position, and selected choices are required' });
   }
 
   try {
@@ -215,7 +215,7 @@ router.post('/vote', async (req, res) => {
     if (selectedCandidates.length !== positionData.num_votes_allowed) {
       return res.status(400).json({
         success: false,
-        message: `You must vote for exactly ${positionData.num_votes_allowed} candidate(s).`,
+        message: `You must vote for exactly ${positionData.num_votes_allowed} choice(s).`,
       });
     }
 

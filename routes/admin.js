@@ -286,7 +286,7 @@ router.post('/positions', async (req, res) => {
   }
 });
 
-const POSITION_HAS_CANDIDATES_MESSAGE = "Remove this position's candidates first";
+const POSITION_HAS_CANDIDATES_MESSAGE = "Remove this position's choices first";
 
 // DELETE /admin/positions/:id — refused if any candidates are attached (FK is ON DELETE CASCADE)
 router.delete('/positions/:id', async (req, res) => {
