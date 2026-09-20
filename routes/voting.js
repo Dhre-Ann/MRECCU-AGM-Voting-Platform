@@ -60,11 +60,33 @@ router.post('/start', requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Number of votes allowed is not appropriate for this position.' });
     }
 
-    // ✅ Start voting for this position
-    await pool.query(
-      'UPDATE positions SET voting_active = TRUE WHERE id = $1',
+    // Start voting only if no other race is active (guards concurrent start requests)
+    const startResult = await pool.query(
+      `UPDATE positions SET voting_active = TRUE
+       WHERE id = $1
+         AND voting_complete = FALSE
+         AND NOT EXISTS (
+           SELECT 1 FROM positions other WHERE other.voting_active = TRUE
+         )
+       RETURNING id`,
       [position.id]
     );
+
+    if (startResult.rowCount === 0) {
+      const stillActive = await pool.query(
+        'SELECT name FROM positions WHERE voting_active = TRUE LIMIT 1'
+      );
+      if (stillActive.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Voting is currently active for "${stillActive.rows[0].name}". Please stop that voting before starting a new one.`,
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to start voting for this position.',
+      });
+    }
 
     res.json({ success: true, message: `Voting started successfully for ${position_name}` });
 

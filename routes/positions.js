@@ -8,10 +8,10 @@ const router = express.Router();
 router.get('/positions', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT p.id, p.name, COUNT(c.id)::int AS candidate_count
+      `SELECT p.id, p.name, p.voting_active, COUNT(c.id)::int AS candidate_count
        FROM positions p
        LEFT JOIN candidates c ON c.position_id = p.id
-       GROUP BY p.id, p.name
+       GROUP BY p.id, p.name, p.voting_active
        ORDER BY p.id ASC`
     );
 

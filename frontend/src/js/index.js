@@ -305,7 +305,9 @@ const addPositionForm = document.getElementById('addPositionForm');
 const addPositionNameInput = document.getElementById('addPositionName');
 const addPositionBtn = document.getElementById('addPositionBtn');
 const positionManageStatus = document.getElementById('positionManageStatus');
+const positionSelectLockNote = document.getElementById('positionSelectLockNote');
 let previousVotingActive = null;
+let positionSelectLockedTo = null;
 
 const START_VOTING_BTN_CLASS =
   'min-h-11 rounded-lg bg-primary px-4 py-2 text-ui font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50';
@@ -340,8 +342,52 @@ function setPositionManageStatus(message, kind = 'muted') {
         : 'text-caption text-ink-muted';
 }
 
-function populatePositionSelect(positions, previousName) {
+function getActivePositionName(positions) {
+  const active = (positions || []).find((position) => position.voting_active);
+  return active ? active.name : null;
+}
+
+function lockPositionSelectToActive(activePositionName) {
   if (!positionSelect) return;
+
+  positionSelectLockedTo = activePositionName || null;
+
+  Array.from(positionSelect.options).forEach((option) => {
+    if (option.value === 'Select') {
+      option.disabled = true;
+      return;
+    }
+    option.disabled = Boolean(activePositionName) && option.value !== activePositionName;
+  });
+
+  if (activePositionName && positionSelect.value !== activePositionName) {
+    positionSelect.value = activePositionName;
+  }
+
+  if (activePositionName) {
+    positionSelect.title = `Voting is active for “${activePositionName}”. Other positions are locked until it is stopped.`;
+  } else {
+    positionSelect.title = 'select_position';
+  }
+
+  if (positionSelectLockNote) {
+    if (activePositionName) {
+      positionSelectLockNote.textContent =
+        `Voting is in progress for “${activePositionName}”. Other positions are locked until it is stopped.`;
+      positionSelectLockNote.classList.remove('hidden');
+    } else {
+      positionSelectLockNote.textContent = '';
+      positionSelectLockNote.classList.add('hidden');
+    }
+  }
+}
+
+function populatePositionSelect(positions, previousName) {
+  if (!positionSelect) return { selectedName: null, snappedToActive: false };
+
+  const activeName = getActivePositionName(positions);
+  const preferredName =
+    activeName || (previousName && previousName !== 'Select' ? previousName : null);
 
   positionSelect.innerHTML = '';
   const placeholder = document.createElement('option');
@@ -355,7 +401,7 @@ function populatePositionSelect(positions, previousName) {
     const option = document.createElement('option');
     option.value = position.name;
     option.textContent = position.name;
-    if (previousName && previousName === position.name) {
+    if (preferredName && preferredName === position.name) {
       option.selected = true;
       restored = true;
     }
@@ -365,6 +411,13 @@ function populatePositionSelect(positions, previousName) {
   if (!restored) {
     placeholder.selected = true;
   }
+
+  lockPositionSelectToActive(activeName);
+
+  return {
+    selectedName: restored ? preferredName : null,
+    snappedToActive: Boolean(activeName && previousName !== activeName),
+  };
 }
 
 function renderPositionManageList(positions) {
@@ -436,8 +489,12 @@ async function loadPositions({ updateSelect = true } = {}) {
 
     if (updateSelect) {
       const previousName = positionSelect?.value;
-      populatePositionSelect(data.positions, previousName);
-      clearRaceConfigIfUnselected();
+      const selection = populatePositionSelect(data.positions, previousName);
+      if (selection?.snappedToActive && selection.selectedName) {
+        positionSelect.dispatchEvent(new Event('change'));
+      } else {
+        clearRaceConfigIfUnselected();
+      }
     }
     renderPositionManageList(data.positions);
   } catch (err) {
@@ -524,6 +581,7 @@ if (toggleVotingBtn){
       const data = await response.json();
 
       if (data.success) {
+        lockPositionSelectToActive(selectedPosition);
         setToggleVotingAppearance(true);
         votingInactiveMsg.classList.add('hidden');
         votingStatusText.classList.remove('hidden');
@@ -532,6 +590,7 @@ if (toggleVotingBtn){
         loadActiveVoting();
       } else {
         alert(data.message || 'Unable to start voting.');
+        await loadPositions();
       }
 
     } else {
@@ -545,6 +604,7 @@ if (toggleVotingBtn){
       const data = await response.json();
 
       if (data.success) {
+        lockPositionSelectToActive(null);
         setToggleVotingAppearance(false);
         votingStats.classList.add('hidden');
         votingStatusText.classList.add('hidden');
@@ -651,6 +711,11 @@ async function removeCandidate(candidateId, positionName) {
 // Automatically load candidates when position changes
 if (positionSelect){
   positionSelect.addEventListener('change', () => {
+  if (positionSelectLockedTo && positionSelect.value !== positionSelectLockedTo) {
+    positionSelect.value = positionSelectLockedTo;
+    return;
+  }
+
   const selected = positionSelect.value;
   if (selected !== 'Select') {
     loadCandidates(selected);
@@ -715,6 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (positionSelect){
     positionSelect.addEventListener('change', async () => {
     const positionName = positionSelect.value;
+    if (!positionName || positionName === 'Select') return;
 
     // Fetch the position from the backend
     try {
@@ -2173,6 +2239,7 @@ if (fullResetConfirmInput && fullResetBtn) {
 
       loadVotingHistory();
       updateToggleVotingButtonState();
+      lockPositionSelectToActive(null);
       loadActiveVoting();
       if (positionSelect?.value && positionSelect.value !== 'Select') {
         loadLiveVotingStats(positionSelect.value);
@@ -2302,6 +2369,7 @@ if (positionResetConfirmInput && positionResetBtn) {
 
       loadVotingHistory();
       updateToggleVotingButtonState();
+      lockPositionSelectToActive(null);
       loadActiveVoting();
       if (positionSelect?.value && positionSelect.value !== 'Select') {
         loadLiveVotingStats(positionSelect.value);
